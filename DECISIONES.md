@@ -56,16 +56,51 @@ Dos cosas que eso obligó:
 - Deno exige extensión en los imports relativos, así que todo `lib/` importa
   con `.ts`. El bundler de Next resuelve el archivo exacto sin quejarse.
 
+## Las fuentes, después de descartar Best Buy
+
+| Tienda | Estado | Por qué |
+|---|---|---|
+| **eBay** | Andando, fuente principal | Browse API oficial, gratis, sin exigencia de ventas previas. La única que trae subastas y usado. |
+| **Amazon** | Registrada, sin implementar | Su contrato exige la Product Advertising API, y esa API exige cuenta de Associates aprobada **con ventas calificadas**. Lo desbloquea una cuenta, no una tarde de código. |
+| B&H, Adorama, Newegg | Disponibles, sin listings | JSON-LD. Quedan por si hace falta comparar contra precio de lista nuevo. |
+| Best Buy | Adaptador andando, tienda apagada | No lo sigo. Prenderla es una fila en `tracker.tienda`. |
+
+### La subasta rompió un supuesto
+
+Todas las tiendas de precio fijo comparten algo que eBay no: el precio de hoy
+es el precio. En una subasta el número es una puja parcial que va a subir, y
+sin cuidado cada subasta dispararía una alerta el día uno con la apertura de un
+dólar. Sería la peor alerta del sistema: parece la oferta del año y no se puede
+comprar. De ahí las tres reglas nuevas —ventana de 60 minutos para que cuente,
+tier caliente 90 minutos antes del cierre, y una publicación cerrada no se lee
+ni se muestra—.
+
+## La función desplegada no es igual al archivo del repo
+
+`supabase/functions/recolectar/index.ts` importa el motor con rutas relativas,
+que es lo correcto cuando despliega la CLI desde el repo. La versión que está
+corriendo hoy la desplegué por la API de gestión, y ahí los archivos van
+sueltos: no hay `lib/` al lado. Así que esa versión importa el motor por HTTPS
+desde `raw.githubusercontent.com`, **fijado al SHA del commit**, no a `main`.
+
+Dos cosas que aprendí haciéndolo: el runtime no baja módulos remotos en
+caliente —un `await import()` con la URL armada en una variable falla con
+"Module not found"—, hay que dejar los imports estáticos para que se resuelvan
+al empaquetar. Y en cuanto el workflow de GitHub corra con el access token,
+redespliega desde la fuente y las dos versiones vuelven a ser la misma.
+
 ## Cosas que quedaron sin verificar
 
 - **Los pesos de `data/productos.json` son estimaciones mías**, no medidas. Un
   peso mal cargado corre el precio puesto de todo el producto.
 - **Los parámetros 7 US$/kg, 5 fijos y 15% son de arranque**, sin calibrar
   contra ninguna factura.
-- **Los adaptadores reales no se probaron contra las tiendas**: el contenedor
-  donde se construyó esto no tiene salida a internet hacia Best Buy, B&H,
-  Adorama ni Newegg. El parseo está probado con HTML de muestra; la primera
-  corrida real va a decir qué tienda cambió el formato.
+- **El adaptador de eBay no tocó nunca la API real.** El contenedor donde se
+  construyó esto no tiene salida a internet hacia eBay. El mapeo de campos
+  —`price` vs `currentBidPrice`, `estimatedAvailabilities`, `itemEndDate`—
+  está probado contra respuestas de muestra escritas a mano, no capturadas. La
+  primera lectura real es la que lo confirma. Lo mismo vale para el JSON-LD de
+  B&H, Adorama y Newegg.
 - **`npm:web-push` en Deno.** El envío de push usa la librería de Node por
   compatibilidad del runtime de Supabase. Es lo primero a mirar en el primer
   despliegue; si falla, hay que escribir la firma VAPID con Web Crypto.
