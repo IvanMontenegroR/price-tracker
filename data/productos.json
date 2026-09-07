@@ -1,0 +1,22 @@
+[
+  { "nombre": "iPhone 17 Pro 256GB", "marca": "Apple", "peso_kg": 0.45, "objetivo": 1150,
+    "notas": "Peso estimado con caja. Verificar contra la etiqueta del courier." },
+  { "nombre": "Apple Watch Series 11 GPS 42mm", "marca": "Apple", "peso_kg": 0.35, "objetivo": 380,
+    "notas": "Peso estimado con caja." },
+  { "nombre": "AirPods Pro 3", "marca": "Apple", "peso_kg": 0.25, "objetivo": 210,
+    "notas": "Peso estimado con caja." },
+  { "nombre": "iPad Air 11\" M3 128GB Wi-Fi", "marca": "Apple", "peso_kg": 0.8, "objetivo": 600,
+    "notas": "Peso estimado con caja." },
+  { "nombre": "MacBook Air 13\" M4 16GB/256GB", "marca": "Apple", "peso_kg": 1.9, "objetivo": 1020,
+    "notas": "Peso estimado con caja y cargador." },
+  { "nombre": "Sony WH-1000XM6", "marca": "Sony", "peso_kg": 1.0, "objetivo": 360,
+    "notas": "Peso estimado con estuche y caja." },
+  { "nombre": "PlayStation 5 Slim Digital", "marca": "Sony", "peso_kg": 4.5, "objetivo": 470,
+    "notas": "Pesado: el flete se lleva casi US$ 32 a 7 US$/kg." },
+  { "nombre": "Nintendo Switch 2", "marca": "Nintendo", "peso_kg": 1.4, "objetivo": 470,
+    "notas": "Peso estimado con caja." },
+  { "nombre": "Samsung Galaxy S25 256GB", "marca": "Samsung", "peso_kg": 0.45, "objetivo": 760,
+    "notas": "Peso estimado con caja." },
+  { "nombre": "DJI Osmo Pocket 3 Creator Combo", "marca": "DJI", "peso_kg": 0.9, "objetivo": 520,
+    "notas": "Peso estimado con combo y caja." }
+]

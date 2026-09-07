@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fondo: #0e0f11;
+  --color-panel: #17191d;
+  --color-borde: #262a31;
+  --color-tinta: #e8eaed;
+  --color-tenue: #9aa1ab;
+  --color-verde: #4ade80;
+  --color-ambar: #fbbf24;
+}
+
+html { color-scheme: dark; }
+body {
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.numero { font-variant-numeric: tabular-nums; }

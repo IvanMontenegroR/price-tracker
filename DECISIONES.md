@@ -1,0 +1,55 @@
+# Decisiones y hallazgos
+
+Lo que se decidió al construir la primera versión, y lo que la corrida de un día
+mostró que estaba mal en el diseño.
+
+## Decisiones tomadas (07/09/2026)
+
+| Tema | Decisión |
+|---|---|
+| Repo | Proyecto propio, separado del juego de Olimpia. |
+| Supabase | Schema `tracker` dentro del proyecto **Forge** que ya existe, en vez de un proyecto nuevo: el plan free topa en dos proyectos activos y un schema aparte aísla igual. |
+| Fuentes | Sin cuenta de afiliado aprobada: se arranca con API oficial de Best Buy y JSON-LD para B&H, Adorama y Newegg. El adaptador de feeds queda escrito y probado, esperando la cuenta. |
+| Avisos | Email (Resend) **y** Web Push desde el día uno. El push es el rápido; el mail es el que llega igual cuando iOS desinstala la PWA o vence la suscripción. |
+| Auth | Magic link de Supabase. Un solo usuario, pero con RLS de verdad: la app se conecta con mi sesión, y solo el cron usa service role. |
+| Parámetros de costo | Se versionan, no se pisan. Cada observación guarda tarifa, fee, tasa y peso congelados. |
+| `puesto_py` | Columna generada en Postgres, no calculada por la app: así ninguna fila puede quedar con un puesto que no se corresponde con sus insumos. |
+| Reglas | Solo R1. R2 y R3 quedan diseñadas en el esquema y en el anti-ruido, sin implementar. |
+
+## Correcciones al diseño, encontradas corriendo el sistema
+
+1. **El score por sí solo mata de hambre a casi todo.**
+   El diseño decía `score = volatilidad × cercanía × evento`. En la primera
+   corrida de un día con presupuesto ajustado, el listing de mayor score se
+   llevó **284 de 288 lecturas** y los otros nueve productos quedaron sin una
+   sola observación. Se agregó el factor **atraso** (cuántas cadencias pasaron
+   desde la última lectura), sin tope: el que espera crece sin límite y el que
+   se acaba de leer vuelve a 1. El score sigue decidiendo cuántas veces le toca
+   a cada uno, pero a todos les llega el turno.
+
+2. **El sello de tiempo de la observación es el del recolector, no el de la
+   fuente.** Un feed puede traer el precio de anoche. Lo que ordena el historial
+   y define la frescura es cuándo lo leí yo; el `ts` de la fuente queda en
+   `crudo`.
+
+3. **Una lectura fallida es un dato, no un descarte.** Se guarda con
+   `estado = 'nula'`. Es lo único que alimenta el circuit breaker: si se
+   descartan, un adaptador roto parece un día sin ofertas.
+
+4. **El umbral de "absurdo" tiene que ser bajísimo.** Se descarta lo que no
+   puede ser cierto (cero, negativo, 20× o 1/50 de la mediana). Un 60% de
+   descuento **no** es absurdo: es exactamente lo que R3 tiene que poder ver.
+
+## Cosas que quedaron sin verificar
+
+- **Los pesos de `data/productos.json` son estimaciones mías**, no medidas. Un
+  peso mal cargado corre el precio puesto de todo el producto.
+- **Los parámetros 7 US$/kg, 5 fijos y 15% son de arranque**, sin calibrar
+  contra ninguna factura.
+- **Los adaptadores reales no se probaron contra las tiendas**: el contenedor
+  donde se construyó esto no tiene salida a internet hacia Best Buy, B&H,
+  Adorama ni Newegg. El parseo está probado con HTML de muestra; la primera
+  corrida real va a decir qué tienda cambió el formato.
+- **El envío en EE.UU. casi nunca viene en el JSON-LD.** Hoy queda en `null` y
+  suma 0 al puesto. Si el courier no es el que factura ese tramo, hay que
+  cargarlo por tienda.

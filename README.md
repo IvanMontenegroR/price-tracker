@@ -1,0 +1,143 @@
+# Precio puesto
+
+Tracker de precios personal. Vigila electrónica en tiendas de EE.UU. y avisa
+cuando el **precio puesto en Asunción** —con envío, courier e impuesto— baja
+del objetivo que puse.
+
+No es un producto. Es una herramienta para mí solo.
+
+## El único número que importa
+
+```
+puesto_py = precio + envio_us + (peso_kg × TARIFA_KG) + FEE_FIJO + precio × TASA_IMP
+```
+
+Un iPhone a US$ 999 en Best Buy, 0,45 kg, con 7 US$/kg, 5 fijos y 15%:
+
+```
+Etiqueta            US$ 999.00
+Envío en EE.UU.     US$   0.00
+Flete 0.45 kg × 7   US$   3.15
+Fee fijo            US$   5.00
+Impuesto 15%        US$ 149.85
+─────────────────────────────
+Puesto en Asunción  US$ 1156.65
+```
+
+La etiqueta de US$ 999 no sirve para decidir; US$ 1.156,65 sí. Por eso el número
+nunca se muestra solo: cada alerta y cada fila de la lista llevan el desglose
+completo, y **cada observación guarda los parámetros con los que se calculó**,
+para poder recalcular el histórico cuando los cambie.
+
+## Cómo está armado
+
+```
+lib/costo.ts            la fórmula, y nada más que la fórmula
+lib/estadistica.ts      mediana y percentiles. No hay promedio, a propósito
+lib/adaptadores/        una tienda = un archivo con la misma firma
+lib/recolector/         presupuesto y tiers, circuit breaker, la corrida
+lib/reglas/             R1 y el anti-ruido
+lib/db/                 la misma interfaz contra Supabase o contra memoria
+app/                    una pantalla: lo que sigo, con su desglose
+supabase/migrations/    el esquema con RLS
+```
+
+### Las tres cosas separadas
+
+- **producto** — "iPhone 17 Pro 256GB". Lleva el **peso en kg**: es lo único
+  que no se lee de la tienda y sin lo cual no hay precio puesto.
+- **listing** — ese producto en una tienda concreta: URL, vendedor, condición.
+- **observación** — una lectura: (listing, ts, precio, envío, stock).
+
+Separar producto de listing es lo que deja comparar entre tiendas, y comparar
+entre tiendas es de donde va a salir la detección de errores de precio (R3) sin
+necesitar historial.
+
+### De dónde salen los precios
+
+En este orden:
+
+1. **Feeds de afiliados** (Awin, Impact). Traen precio y stock, se actualizan a
+   diario, son gratis y son legales. `lib/adaptadores/feed.ts` está escrito y
+   probado, pero **no hay ninguna tienda usándolo**: hace falta cuenta de
+   publisher aprobada.
+2. **API oficial** donde exista. Best Buy: clave gratis, `lib/adaptadores/bestbuy.ts`.
+3. **Scraping liviano** para lo que no tenga ninguna de las dos: un GET y el
+   JSON-LD de schema.org que la tienda ya publica para Google Shopping
+   (`lib/adaptadores/jsonld.ts`). B&H, Adorama, Newegg.
+4. **Amazon: nunca.** Su contrato prohíbe scraping y exige que el precio
+   mostrado venga de su API. El adaptador existe, está registrado y tira
+   `NoImplementado`. Cuando tenga la cuenta de Associates se implementa ahí y
+   no cambia una línea en ningún otro archivo.
+
+### Frecuencia: presupuesto, no intervalo
+
+No hay "cada X minutos". Hay un techo de peticiones por día que se reparte por
+prioridad:
+
+```
+prioridad = volatilidad × cercanía_al_umbral × evento × atraso
+```
+
+Tres tiers: **caliente** (5 min) para lo que está a menos del 5% de disparar,
+**normal** (30 min), **frío** (1 vez al día). Si el presupuesto se agota, los
+fríos dejan de chequearse y los calientes siguen: el sistema se auto-degrada y
+nunca se pasa de costo.
+
+El factor `atraso` no estaba en el diseño original y hubo que agregarlo: sin él,
+con el presupuesto ajustado el listing de mayor score se lleva **todos** los
+slots. En la primera corrida de un día, un solo producto se llevó 284 de 288
+lecturas y los otros nueve quedaron invisibles.
+
+### El anti-ruido es el producto
+
+- Cooldown de 12 h por producto. R3 exento.
+- Histéresis: tras avisar a X, no reabre hasta que baje otro 5% o hasta que
+  vuelva por encima de la referencia y baje de nuevo.
+- **Sin stock nunca alerta.** Precio bajo + agotado = ruido.
+- Techo de 5 alertas por día. R3 exento.
+- **Circuit breaker por tienda**: más del 30% de lecturas nulas o absurdas en
+  una hora y el adaptador se apaga solo por una hora.
+
+### Las reglas
+
+Esta versión corre **solo R1**: `precio_puesto ≤ objetivo_que_yo_puse`.
+
+R2 (estadística sobre 90 días) y R3 (error de precio contra el mercado de hoy)
+están descritas en el diseño y no implementadas: necesitan historial y varias
+tiendas confiables leyendo a la vez. Construirlas hoy sería construirlas sobre
+datos que no existen. El esquema y el anti-ruido ya las contemplan.
+
+## Puesta en marcha
+
+```bash
+npm install
+cp .env.example .env.local     # completar
+npm run vapid                  # genera las claves de Web Push
+npm run dev
+```
+
+En Supabase, el esquema vive en el schema `tracker` del proyecto. Para que la
+app lo vea por PostgREST hay que tenerlo en **Settings → API → Exposed schemas**
+(ya está agregado por configuración de rol, pero el panel es lo que lo hace
+duradero).
+
+```bash
+npx tsx scripts/sembrar.ts <usuario_id>   # tiendas, parámetros y 10 productos
+npx tsx scripts/recolectar.ts             # una corrida contra la base
+npx tsx scripts/simular.ts --ticks 288    # un día entero sin red y sin base
+npm test                                  # 52 pruebas
+```
+
+El cron va por Vercel Cron (`vercel.json`), cada 5 minutos, contra
+`/api/cron/recolectar` con `Authorization: Bearer $CRON_SECRET`.
+
+## Lo que falta
+
+- Pegarle a cada producto su URL real de tienda: los listings sembrados apuntan
+  al adaptador de fixtures.
+- Calibrar `TARIFA_KG`, `FEE_FIJO` y `TASA_IMP` contra facturas reales del
+  courier. Los valores de arranque (7 / 5 / 15%) son una estimación.
+- Verificar los pesos contra la etiqueta real: un peso mal cargado corre el
+  precio puesto de todo el producto.
+- Cuenta de Awin o Impact para pasar de scraping a feeds.

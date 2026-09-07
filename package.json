@@ -1,0 +1,36 @@
+{
+  "name": "precio-puesto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "tsx --test lib/**/*.test.ts",
+    "vapid": "tsx scripts/vapid.ts",
+    "sembrar": "tsx scripts/sembrar.ts",
+    "simular": "tsx scripts/simular.ts",
+    "recolectar": "tsx scripts/recolectar.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.58.0",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "resend": "^6.1.2",
+    "web-push": "^3.6.7",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@types/web-push": "^3.6.4",
+    "tailwindcss": "^4.1.13",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}
