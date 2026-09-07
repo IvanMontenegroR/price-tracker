@@ -73,21 +73,27 @@ necesitar historial.
 
 En este orden:
 
-1. **eBay**, que es la fuente principal: Browse API oficial, gratis, sin
-   exigencia de ventas previas, y la única que trae **subastas y usado**, que
-   es donde están los precios que valen la pena (`lib/adaptadores/ebay.ts`).
+1. **eBay**, la fuente principal: Browse API oficial, y la única que trae
+   **subastas y usado**, que es donde están los precios que valen la pena
+   (`lib/adaptadores/ebay.ts`). No es tan abierta como parece: la cuenta de
+   desarrollador se aprueba rápido, pero el keyset de producción tiene pasos
+   extra y parte de las Buy APIs son de acceso restringido. El presupuesto por
+   defecto de 2.000 peticiones diarias entra cómodo bajo el tope estándar de
+   5.000 por día. Con `EBAY_ENV=sandbox` se puede validar el mapeo de campos
+   antes de tener producción.
 2. **Feeds de afiliados** (Awin, Impact). `lib/adaptadores/feed.ts` está
    escrito y probado, pero **no hay ninguna tienda usándolo**: hace falta
    cuenta de publisher aprobada.
 3. **Scraping liviano** para lo que no tenga ninguna de las dos: un GET y el
    JSON-LD de schema.org que la tienda ya publica para Google Shopping
    (`lib/adaptadores/jsonld.ts`). B&H, Adorama, Newegg.
-4. **Amazon: nunca scrapear.** Su contrato lo prohíbe y exige que el precio
-   mostrado venga de la Product Advertising API — que a su vez exige cuenta de
-   Associates aprobada **con ventas calificadas**. O sea: lo desbloquea una
-   cuenta, no una tarde de código. El adaptador existe, está registrado y tira
-   `NoImplementado`; el día que haya credenciales se implementa ahí y no
-   cambia una línea en ningún otro archivo.
+4. **Amazon: no hay vía.** Su contrato prohíbe el scraping y exige que el
+   precio venga de su API. La Product Advertising API se retiró en mayo de
+   2026, y la Creators API que la reemplaza exige cuenta de Associates
+   aceptada **con ventas referidas sostenidas mes a mes**. Para un tracker
+   personal eso no es un trámite pendiente, es un callejón sin salida: habría
+   que mantener un sitio de afiliados vendiendo para poder mirar un precio. El
+   adaptador queda documentando la decisión y tirando `NoImplementado`.
 
 Best Buy tiene adaptador andando pero la tienda está apagada: no lo sigo.
 

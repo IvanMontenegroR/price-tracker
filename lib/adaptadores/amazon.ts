@@ -1,22 +1,26 @@
 import { NoImplementado, type Adaptador } from "./tipos.ts";
 
 /**
- * Amazon: sigue sin implementarse, y no es una decisión de diseño mía.
+ * Amazon: no se puede, y conviene decirlo sin vueltas.
  *
  * Su acuerdo de uso prohíbe el scraping y exige que cualquier precio que yo
- * muestre venga de la Product Advertising API. Y para tener acceso a esa API
- * no alcanza con abrir una cuenta de Amazon Associates: hay que estar
- * aprobado y haber hecho ventas calificadas en los primeros meses. Sin esas
- * credenciales no hay forma legal de leer un precio de Amazon.
+ * muestre venga de su API. Y esa puerta se cerró más de lo que estaba:
  *
- * O sea: esto lo desbloquea una cuenta, no una tarde de código. Cuando estén
- * las credenciales (PAAPI_ACCESS_KEY, PAAPI_SECRET_KEY, PAAPI_PARTNER_TAG),
- * se implementa `leer` acá —GetItems, firma SigV4, Offers.Listings— y no
- * cambia una línea en ningún otro archivo: el resto del sistema ya lo trata
- * como una tienda más que hoy está apagada.
+ * - La Product Advertising API v5 se retiró en mayo de 2026.
+ * - La reemplaza la Creators API, que pide cuenta de Amazon Associates
+ *   aceptada y **ventas referidas calificadas en los últimos 30 días, de
+ *   forma sostenida**. No es un trámite de entrada: es un requisito que hay
+ *   que seguir cumpliendo mes a mes o te cortan las credenciales.
  *
- * Mientras tanto, la tienda existe en el catálogo con `activa = false`, así
- * que el recolector la saltea sin romperse.
+ * Traducido a este proyecto: para vigilar el precio de un iPhone que quiero
+ * comprar, Amazon me pediría mantener un sitio de afiliados vendiendo todos
+ * los meses. No es una tarea pendiente, es un callejón sin salida para un
+ * tracker personal.
+ *
+ * El adaptador queda igual, y no por optimismo: documenta la decisión y deja
+ * el enchufe puesto por si algún día tengo esa cuenta por otra razón. La
+ * tienda está en el catálogo con `activa = false`, así que el recolector la
+ * saltea sin romperse.
  */
 export const amazon: Adaptador = {
   slug: "amazon",
@@ -25,7 +29,7 @@ export const amazon: Adaptador = {
   disponible: false,
   async leer() {
     throw new NoImplementado(
-      "Amazon solo por Product Advertising API, que exige cuenta de Associates aprobada con ventas. Sin credenciales todavía."
+      "Amazon no tiene vía legal para un tracker personal: PA-API se retiró y la Creators API exige ventas de afiliado sostenidas."
     );
   },
 };

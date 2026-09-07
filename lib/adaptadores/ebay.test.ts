@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { itemDeUrl, leerItem } from "./ebay.ts";
+import { ebay, itemDeUrl, leerItem } from "./ebay.ts";
 
 test("el id de item sale de la URL de eBay", () => {
   assert.equal(itemDeUrl("https://www.ebay.com/itm/145678901234"), "145678901234");
@@ -58,4 +58,20 @@ test("sin envío declarado no se inventa un cero", () => {
   const l = leerItem({ price: { value: "99.00" }, buyingOptions: ["FIXED_PRICE"] });
   assert.equal(l.envio, null);
   assert.equal(l.stock, null);
+});
+
+test("el sandbox y producción son el mismo adaptador con otra base", async () => {
+  // Sin credenciales, las dos ramas fallan igual: lo que se comprueba acá es
+  // que el entorno no cambia nada más que la URL.
+  const previo = process.env.EBAY_ENV;
+  try {
+    process.env.EBAY_ENV = "sandbox";
+    await assert.rejects(
+      () => ebay.leer({ url: "https://www.ebay.com/itm/145678901234", sku: null, vendedor: null }),
+      /EBAY_CLIENT_ID/
+    );
+  } finally {
+    if (previo === undefined) delete process.env.EBAY_ENV;
+    else process.env.EBAY_ENV = previo;
+  }
 });

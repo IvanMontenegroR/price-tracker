@@ -12,7 +12,14 @@ import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "
  * y la ventana de subasta en reglas/r1.ts.
  */
 
-const BASE = "https://api.ebay.com";
+/**
+ * Sandbox o producción. El sandbox se habilita apenas te aprueban la cuenta de
+ * desarrollador y devuelve datos de mentira, pero con la forma exacta de la
+ * respuesta real: sirve para confirmar el mapeo de campos sin esperar el
+ * keyset de producción.
+ */
+const enSandbox = () => env("EBAY_ENV") === "sandbox";
+const BASE = () => (enSandbox() ? "https://api.sandbox.ebay.com" : "https://api.ebay.com");
 const MERCADO = () => env("EBAY_MARKETPLACE") ?? "EBAY_US";
 
 /** El token de aplicación dura dos horas; se pide una vez por corrida. */
@@ -25,7 +32,7 @@ async function tokenDeApp(): Promise<string> {
   const secreto = env("EBAY_CLIENT_SECRET");
   if (!id || !secreto) throw new Error("faltan EBAY_CLIENT_ID o EBAY_CLIENT_SECRET");
 
-  const res = await traer(`${BASE}/identity/v1/oauth2/token`, {
+  const res = await traer(`${BASE()}/identity/v1/oauth2/token`, {
     method: "POST",
     headers: {
       authorization: `Basic ${btoa(`${id}:${secreto}`)}`,
@@ -111,7 +118,7 @@ export const ebay: Adaptador = {
     if (!item) throw new Error(`no se pudo sacar el id de item de ${pedido.url}`);
 
     const res = await traer(
-      `${BASE}/buy/browse/v1/item/get_item_by_legacy_id?legacy_item_id=${encodeURIComponent(item)}`,
+      `${BASE()}/buy/browse/v1/item/get_item_by_legacy_id?legacy_item_id=${encodeURIComponent(item)}`,
       {
         headers: {
           authorization: `Bearer ${await tokenDeApp()}`,
