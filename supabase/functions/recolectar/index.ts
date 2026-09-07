@@ -1,3 +1,4 @@
+import { cronAutorizado } from "../../../lib/db/autorizacion.ts";
 import { DepositoSupabase } from "../../../lib/db/supabase.ts";
 import { correr } from "../../../lib/recolector/correr.ts";
 
@@ -6,16 +7,17 @@ import { correr } from "../../../lib/recolector/correr.ts";
  *
  * Vive acá y no en un servidor propio porque es el único lugar donde la
  * service_role puede estar sin pasar por el navegador: el sitio es estático.
- * Lo dispara pg_cron cada 5 minutos con un secreto en la cabecera.
+ * Lo dispara pg_cron cada cinco minutos con el secreto de Vault en la
+ * cabecera, y la autorización se resuelve contra la base —ver autorizacion.ts,
+ * que explica por qué no es una variable de entorno—.
  *
- * No importa que los disparos no sean exactos. El planificador no asume
- * ticks parejos: en cada corrida mira qué está vencido según su cadencia y
- * cuánto presupuesto queda. Un tick que llega tarde lee más cosas; uno que
- * se pierde no rompe nada.
+ * No importa que los disparos no sean exactos. El planificador no asume ticks
+ * parejos: en cada corrida mira qué está vencido según su cadencia y cuánto
+ * presupuesto queda. Un tick que llega tarde lee más cosas; uno que se pierde
+ * no rompe nada.
  */
 Deno.serve(async (pedido: Request) => {
-  const secreto = Deno.env.get("CRON_SECRET");
-  if (secreto && pedido.headers.get("x-cron-secreto") !== secreto) {
+  if (!(await cronAutorizado(pedido.headers.get("x-cron-secreto")))) {
     return new Response("no autorizado", { status: 401 });
   }
 
