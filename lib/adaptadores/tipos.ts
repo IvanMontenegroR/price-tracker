@@ -1,4 +1,4 @@
-import type { Origen } from "../tipos.ts";
+import type { Origen, TipoVenta } from "../tipos.ts";
 import { env } from "../entorno.ts";
 
 /**
@@ -13,6 +13,9 @@ export type Lectura = {
   moneda: string;
   stock: boolean | null;
   ts: string;
+  /** Por defecto "fijo": es lo que son todas las tiendas menos eBay. */
+  tipoVenta?: TipoVenta;
+  terminaEn?: string | null;
   /** Lo que devolvió la fuente, para poder auditar una lectura rara. */
   crudo?: unknown;
 };

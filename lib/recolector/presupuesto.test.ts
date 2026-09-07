@@ -101,3 +101,21 @@ test("con presupuesto chico el turno rota: nadie se muere de hambre", () => {
   assert.ok((leidas.get("estrella") ?? 0) > (leidas.get("n0") ?? 0), "el prioritario igual se lee más seguido");
   assert.ok((leidas.get("n0") ?? 0) >= 1, "al de menor prioridad igual le llega el turno");
 });
+
+test("una subasta que cierra pronto es caliente aunque esté lejos del objetivo", () => {
+  const en20min = new Date(ahora.getTime() + 20 * 60_000).toISOString();
+  assert.equal(tierDe(0.9, en20min, ahora), "caliente");
+  assert.equal(tierDe(0.9, null, ahora), "frio");
+});
+
+test("una publicación que ya cerró no se lee más", () => {
+  const cerrada = new Date(ahora.getTime() - 60_000).toISOString();
+  const plan = planificar(
+    [
+      c({ listingId: "cerrada", terminaEn: cerrada, distancia: 0.01 }),
+      c({ listingId: "viva", distancia: 0.01 }),
+    ],
+    { ahora, presupuestoDiario: 100, usadasHoy: 0, maxPorTick: 10 }
+  );
+  assert.deepEqual(plan.aLeer.map((x) => x.candidata.listingId), ["viva"]);
+});

@@ -73,18 +73,36 @@ necesitar historial.
 
 En este orden:
 
-1. **Feeds de afiliados** (Awin, Impact). Traen precio y stock, se actualizan a
-   diario, son gratis y son legales. `lib/adaptadores/feed.ts` está escrito y
-   probado, pero **no hay ninguna tienda usándolo**: hace falta cuenta de
-   publisher aprobada.
-2. **API oficial** donde exista. Best Buy: clave gratis, `lib/adaptadores/bestbuy.ts`.
+1. **eBay**, que es la fuente principal: Browse API oficial, gratis, sin
+   exigencia de ventas previas, y la única que trae **subastas y usado**, que
+   es donde están los precios que valen la pena (`lib/adaptadores/ebay.ts`).
+2. **Feeds de afiliados** (Awin, Impact). `lib/adaptadores/feed.ts` está
+   escrito y probado, pero **no hay ninguna tienda usándolo**: hace falta
+   cuenta de publisher aprobada.
 3. **Scraping liviano** para lo que no tenga ninguna de las dos: un GET y el
    JSON-LD de schema.org que la tienda ya publica para Google Shopping
    (`lib/adaptadores/jsonld.ts`). B&H, Adorama, Newegg.
-4. **Amazon: nunca.** Su contrato prohíbe scraping y exige que el precio
-   mostrado venga de su API. El adaptador existe, está registrado y tira
-   `NoImplementado`. Cuando tenga la cuenta de Associates se implementa ahí y
-   no cambia una línea en ningún otro archivo.
+4. **Amazon: nunca scrapear.** Su contrato lo prohíbe y exige que el precio
+   mostrado venga de la Product Advertising API — que a su vez exige cuenta de
+   Associates aprobada **con ventas calificadas**. O sea: lo desbloquea una
+   cuenta, no una tarde de código. El adaptador existe, está registrado y tira
+   `NoImplementado`; el día que haya credenciales se implementa ahí y no
+   cambia una línea en ningún otro archivo.
+
+Best Buy tiene adaptador andando pero la tienda está apagada: no lo sigo.
+
+### Lo que trajo eBay: la puja no es un precio
+
+Una subasta a tres días no tiene precio, tiene una apuesta parcial que va a
+subir. Sin cuidado, cada subasta dispararía una alerta el día uno con la puja
+de apertura de un dólar: la peor alerta posible, porque parece la oferta del
+año y no se puede comprar.
+
+Por eso una subasta **solo cuenta como precio dentro de los 60 minutos previos
+al cierre**, cuando todavía puedo pujar y el número ya se parece al final. Y al
+revés: una subasta que cierra dentro de 90 minutos pasa a tier caliente valga
+lo que valga, porque ahí el reloj manda sobre el precio. Una publicación
+cerrada no se lee más ni aparece en la lista.
 
 ### Frecuencia: presupuesto, no intervalo
 

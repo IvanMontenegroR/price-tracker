@@ -16,6 +16,8 @@ const obs = (p: Partial<Observacion>): Observacion => ({
   origen: "fixture",
   estado: "ok",
   parametrosId: null,
+  tipoVenta: "fijo",
+  terminaEn: null,
   pesoKg: 0.4,
   tarifaKg: 7,
   feeFijo: 5,
@@ -114,4 +116,53 @@ test("usa los parámetros congelados de la observación, no los de hoy", () => {
 test("un watch sin objetivo no es una regla", () => {
   const r = evaluarR1(watch({ objetivoPuesto: null }), [cand({})], PARAMETROS_INICIALES, ctx);
   assert.equal(r.avisa, false);
+});
+
+test("una subasta lejos del cierre no dispara: la puja no es el precio", () => {
+  const enTresDias = new Date(ahora.getTime() + 72 * 3.6e6).toISOString();
+  const r = evaluarR1(
+    watch(),
+    [cand({ precio: 1, tipoVenta: "subasta", terminaEn: enTresDias }, "ebay")],
+    PARAMETROS_INICIALES,
+    ctx
+  );
+  assert.equal(r.avisa, false);
+  if (!r.avisa) assert.match(r.motivo, /subasta/);
+});
+
+test("la misma subasta a media hora del cierre sí dispara", () => {
+  const enMediaHora = new Date(ahora.getTime() + 30 * 60_000).toISOString();
+  const r = evaluarR1(
+    watch(),
+    [cand({ precio: 900, tipoVenta: "subasta", terminaEn: enMediaHora }, "ebay")],
+    PARAMETROS_INICIALES,
+    ctx
+  );
+  assert.equal(r.avisa, true);
+});
+
+test("una subasta ya cerrada no dispara", () => {
+  const hace10min = new Date(ahora.getTime() - 10 * 60_000).toISOString();
+  const r = evaluarR1(
+    watch(),
+    [cand({ precio: 500, tipoVenta: "subasta", terminaEn: hace10min }, "ebay")],
+    PARAMETROS_INICIALES,
+    ctx
+  );
+  assert.equal(r.avisa, false);
+});
+
+test("entre una subasta por cerrar y un precio fijo, gana el más barato puesto", () => {
+  const enMediaHora = new Date(ahora.getTime() + 30 * 60_000).toISOString();
+  const r = evaluarR1(
+    watch(),
+    [
+      cand({ listingId: "a", precio: 950 }, "ebay"),
+      cand({ listingId: "b", precio: 800, tipoVenta: "subasta", terminaEn: enMediaHora }, "ebay"),
+    ],
+    PARAMETROS_INICIALES,
+    ctx
+  );
+  assert.equal(r.avisa, true);
+  if (r.avisa) assert.equal(r.candidata.observacion.precio, 800);
 });

@@ -72,6 +72,7 @@ function sintetico(): Entrada {
         sku: null,
         vendedor: null,
         ultimaLectura: null,
+        terminaEn: null,
         historial: [],
         // El objetivo está cerca del precio de fixture: así el día produce
         // disparos y se puede ver el anti-ruido trabajando.

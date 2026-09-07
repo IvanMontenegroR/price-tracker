@@ -1,5 +1,6 @@
 import { amazon } from "./amazon.ts";
 import { bestbuy } from "./bestbuy.ts";
+import { ebay } from "./ebay.ts";
 import { adaptadorFixture } from "./fixture.ts";
 import { adaptadorJsonLd } from "./jsonld.ts";
 import type { Adaptador } from "./tipos.ts";
@@ -16,7 +17,12 @@ const UA_NAVEGADOR =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 
 export const ADAPTADORES: Record<string, Adaptador> = {
-  // API oficial, gratis y permitida.
+  // API oficial, gratis, sin exigencia de ventas previas. Es la única fuente
+  // que además da subastas y usado, que es donde están los precios buenos.
+  ebay,
+
+  // API oficial también, pero sin tienda activa: no lo sigo. Queda registrado
+  // porque volver a prenderlo es insertar una fila en tracker.tienda.
   bestbuy,
 
   // Sin API pública: JSON-LD, un GET por lectura, solo en tier caliente.

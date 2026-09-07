@@ -40,7 +40,7 @@ export class DepositoSupabase implements Deposito {
       this.sb.from("watch").select("producto_id, objetivo_puesto").eq("activo", true).eq("regla", "R1"),
       this.sb
         .from("observacion")
-        .select("listing_id, ts, puesto_py, stock")
+        .select("listing_id, ts, puesto_py, stock, termina_en")
         .eq("estado", "ok")
         .gte("ts", new Date(Date.now() - VENTANA_HISTORIAL_DIAS * 864e5).toISOString())
         .order("ts", { ascending: false })
@@ -59,10 +59,18 @@ export class DepositoSupabase implements Deposito {
 
     // Agrupo en memoria: a escala personal son unos pocos miles de filas y
     // ahorra un RPC por listing.
-    const porListing = new Map<string, { ts: string; puesto: number | null; stock: boolean | null }[]>();
+    const porListing = new Map<
+      string,
+      { ts: string; puesto: number | null; stock: boolean | null; terminaEn: string | null }[]
+    >();
     for (const o of (observaciones.data ?? []) as any[]) {
       const arr = porListing.get(o.listing_id) ?? [];
-      arr.push({ ts: o.ts, puesto: o.puesto_py === null ? null : Number(o.puesto_py), stock: o.stock });
+      arr.push({
+        ts: o.ts,
+        puesto: o.puesto_py === null ? null : Number(o.puesto_py),
+        stock: o.stock,
+        terminaEn: o.termina_en ?? null,
+      });
       porListing.set(o.listing_id, arr);
     }
 
@@ -96,6 +104,7 @@ export class DepositoSupabase implements Deposito {
           sku: l.sku,
           vendedor: l.vendedor,
           ultimaLectura: ultima?.ts ?? null,
+          terminaEn: ultima?.terminaEn ?? null,
           historial: hist.map((h) => h.puesto).filter((p): p is number => p !== null),
           distancia:
             puesto === null || objetivo === null || Number(objetivo) <= 0
@@ -152,6 +161,8 @@ export class DepositoSupabase implements Deposito {
           stock: o.stock,
           origen: o.origen,
           estado: o.estado,
+          tipo_venta: o.tipoVenta,
+          termina_en: o.terminaEn,
           parametros_id: o.parametrosId,
           peso_kg: o.pesoKg,
           tarifa_kg: o.tarifaKg,
@@ -246,6 +257,8 @@ export class DepositoSupabase implements Deposito {
           stock: o.stock,
           origen: o.origen,
           estado: o.estado,
+          tipoVenta: o.tipo_venta ?? "fijo",
+          terminaEn: o.termina_en ?? null,
           parametrosId: o.parametros_id,
           pesoKg: Number(o.peso_kg),
           tarifaKg: Number(o.tarifa_kg),

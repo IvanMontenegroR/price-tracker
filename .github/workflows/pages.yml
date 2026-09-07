@@ -31,12 +31,18 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /price-tracker
           # La clave anon es pública por diseño: lo que protege los datos es
           # la RLS. La service_role no aparece por ningún lado de este build.
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Con valor por defecto: son públicos y así el build no depende de
+          # que estén cargados los secrets.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ofekkczobrxhjoyggtmc.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_yMlRo45zlySvUkaJyT9WNQ_SxIaoKOS' }}
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
       # Pages sirve tal cual: sin esto ignora los archivos que empiezan con _
       - run: touch out/.nojekyll
+      # enablement: prende Pages por API si el repo todavía no lo tiene.
+      # Sin esto el primer push falla con "Get Pages site failed".
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

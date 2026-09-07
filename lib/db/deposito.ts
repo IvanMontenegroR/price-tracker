@@ -20,6 +20,8 @@ export type FilaPlanificacion = {
   sku: string | null;
   vendedor: string | null;
   ultimaLectura: string | null;
+  /** Cierre de la subasta, de la última lectura. null en precio fijo. */
+  terminaEn: string | null;
   /** Precios puestos recientes, del más nuevo al más viejo. */
   historial: number[];
   distancia: number | null;

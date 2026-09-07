@@ -71,6 +71,7 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
   const candidatas: CandidataLectura[] = filas.map((f) => ({
     listingId: f.listingId,
     tiendaSlug: f.tiendaSlug,
+    terminaEn: f.terminaEn,
     distancia: f.distancia,
     historial: f.historial,
     ultimaLectura: f.ultimaLectura,
@@ -142,6 +143,8 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
         stock: lectura.stock,
         origen: adaptador.origen,
         estado,
+        tipoVenta: lectura.tipoVenta ?? "fijo",
+        terminaEn: lectura.terminaEn ?? null,
         crudo: { fuente: lectura.crudo ?? null, tsFuente: lectura.ts },
       };
     } catch (e) {
@@ -158,6 +161,8 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
         stock: null,
         origen: adaptador.origen,
         estado: "nula",
+        tipoVenta: "fijo",
+        terminaEn: null,
         crudo: { error: String((e as Error).message) },
       };
     }

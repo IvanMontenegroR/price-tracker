@@ -29,6 +29,16 @@ function haceCuanto(ts: string | null): string {
   return `hace ${Math.round(min / 1440)} días`;
 }
 
+/** Cuánto falta para que cierre una subasta, en corto. */
+function cierre(ts: string | null): string | null {
+  if (!ts) return null;
+  const min = (new Date(ts).getTime() - Date.now()) / 60000;
+  if (min <= 0) return "cerrada";
+  if (min < 60) return `cierra en ${Math.round(min)} min`;
+  if (min < 48 * 60) return `cierra en ${Math.round(min / 60)} h`;
+  return `cierra en ${Math.round(min / 1440)} días`;
+}
+
 const COLOR_TIER: Record<string, string> = {
   caliente: "text-[color:var(--color-ambar)]",
   normal: "text-[color:var(--color-tenue)]",
@@ -167,10 +177,20 @@ function Fila({ f, alGuardar }: { f: FilaSeguimiento; alGuardar: () => Promise<v
             {haceCuanto(f.leido_en)}
             {f.stock === false && <span className="text-red-400"> · agotado</span>}
             {desglose && <span className={COLOR_TIER[tier]}> · {tier}</span>}
+            {f.tipo_venta === "subasta" && (
+              // Una puja no es un precio: mientras la subasta no cierre, el
+              // número de arriba puede subir. Decirlo acá o el número miente.
+              <span className="text-[color:var(--color-ambar)]">
+                {" · "}puja{f.termina_en ? `, ${cierre(f.termina_en)}` : ""}
+              </span>
+            )}
           </p>
         </div>
         <div className="shrink-0 text-right">
           <div className="numero text-lg font-semibold">{desglose ? usd(desglose.puesto) : "—"}</div>
+          {f.tipo_venta === "subasta" && (
+            <div className="text-xs text-[color:var(--color-ambar)]">puesto sobre la puja de ahora</div>
+          )}
           {delta !== null && (
             <div className={`numero text-xs ${delta <= 0 ? "text-[color:var(--color-verde)]" : "text-[color:var(--color-tenue)]"}`}>
               {delta <= 0 ? "−" : "+"}

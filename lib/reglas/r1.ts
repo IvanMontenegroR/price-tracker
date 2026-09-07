@@ -14,6 +14,27 @@ import { pasaAntiRuido, reArmar, type Contexto, type EstadoWatch } from "./antir
 /** Cuánto puede tener de vieja una lectura para decidir sobre ella. */
 export const FRESCURA_HORAS = 12;
 
+/**
+ * Una subasta solo cuenta como precio cuando está por cerrar.
+ *
+ * El número de una subasta a tres días no es lo que voy a pagar: es lo que
+ * alguien ofreció hasta ahora, y va a subir. Sin esta ventana, cada subasta
+ * dispararía una alerta el día uno con la puja de apertura de un dólar, que
+ * es la peor alerta posible: parece la oferta del año y no se puede comprar.
+ *
+ * Con la ventana, el aviso llega cuando todavía puedo pujar y el precio ya se
+ * parece al final.
+ */
+export const VENTANA_SUBASTA_MINUTOS = 60;
+
+/** Si una lectura de subasta es accionable ahora. El precio fijo siempre lo es. */
+export function accionable(o: { tipoVenta: string; terminaEn: string | null }, ahora: Date): boolean {
+  if (o.tipoVenta !== "subasta") return true;
+  if (!o.terminaEn) return false;
+  const faltan = (new Date(o.terminaEn).getTime() - ahora.getTime()) / 60_000;
+  return faltan > 0 && faltan <= VENTANA_SUBASTA_MINUTOS;
+}
+
 export type Candidata = {
   observacion: Observacion;
   /** Para poder decir en la alerta de qué tienda es. */
@@ -44,6 +65,7 @@ export function evaluarR1(
   const frescas = candidatas.filter((c) => {
     const o = c.observacion;
     if (o.estado !== "ok" || o.precio === null) return false;
+    if (!accionable(o, ctx.ahora)) return false;
     const horas = (ctx.ahora.getTime() - new Date(o.ts).getTime()) / 3.6e6;
     return horas <= FRESCURA_HORAS;
   });
@@ -65,7 +87,16 @@ export function evaluarR1(
     .sort((a, b) => a.desglose.puesto - b.desglose.puesto);
   const mejor = ordenadas[0] ?? null;
 
-  if (!mejor) return { avisa: false, motivo: "sin lecturas frescas y válidas", mejor: null };
+  if (!mejor) {
+    const hayEsperando = candidatas.some(
+      (c) => c.observacion.tipoVenta === "subasta" && !accionable(c.observacion, ctx.ahora)
+    );
+    return {
+      avisa: false,
+      motivo: hayEsperando ? "subasta lejos del cierre" : "sin lecturas frescas y válidas",
+      mejor: null,
+    };
+  }
 
   // Para el mejor precio con stock, no el mejor precio a secas.
   const mejorConStock = ordenadas.find((x) => x.candidata.observacion.stock === true) ?? null;

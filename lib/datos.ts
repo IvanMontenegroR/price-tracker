@@ -26,6 +26,8 @@ export type FilaSeguimiento = {
   precio: number | null;
   envio_us: number | null;
   stock: boolean | null;
+  tipo_venta: string | null;
+  termina_en: string | null;
   leido_en: string | null;
   puesto_py: number | null;
   tarifa_kg: number | null;

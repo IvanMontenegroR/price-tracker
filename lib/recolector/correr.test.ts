@@ -17,6 +17,7 @@ const fila = (p: Partial<FilaPlanificacion> & { listingId: string }): FilaPlanif
   sku: null,
   vendedor: null,
   ultimaLectura: null,
+  terminaEn: null,
   historial: [],
   distancia: 0.01,
   evento: false,

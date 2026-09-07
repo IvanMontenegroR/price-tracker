@@ -29,7 +29,14 @@ export type Producto = {
   notas: string | null;
 };
 
-export type Condicion = "nuevo" | "open_box" | "reacondicionado";
+export type Condicion = "nuevo" | "open_box" | "reacondicionado" | "usado";
+
+/**
+ * Cómo se compra. Lo trajo eBay y cambia el sentido del precio: en una subasta
+ * el número de hoy no es lo que voy a pagar, es lo que alguien ofreció hasta
+ * ahora. Ver la ventana de subasta en reglas/r1.ts.
+ */
+export type TipoVenta = "fijo" | "subasta" | "mejor_oferta";
 
 /** Ese producto en una tienda concreta. */
 export type Listing = {
@@ -70,6 +77,9 @@ export type Observacion = {
   stock: boolean | null;
   origen: Origen;
   estado: EstadoLectura;
+  tipoVenta: TipoVenta;
+  /** Cuándo cierra la subasta. null en precio fijo. */
+  terminaEn: string | null;
   /** Parámetros congelados, para poder recalcular el histórico. */
   parametrosId: string | null;
   tarifaKg: number;

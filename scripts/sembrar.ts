@@ -12,12 +12,21 @@ import { clienteAdmin } from "../lib/supabase/admin";
  */
 
 const TIENDAS = [
-  { slug: "bestbuy", nombre: "Best Buy", adaptador: "bestbuy", confiable: true },
+  // La fuente principal: API oficial, gratis, y la única que da subastas y
+  // usado, que es donde aparecen los precios que valen la pena.
+  { slug: "ebay", nombre: "eBay", adaptador: "ebay", confiable: true },
+
+  // Sin API: JSON-LD, un GET por lectura. Quedan disponibles por si hago
+  // falta comparar contra precio de lista nuevo.
   { slug: "bhphoto", nombre: "B&H Photo", adaptador: "bhphoto", confiable: true },
   { slug: "adorama", nombre: "Adorama", adaptador: "adorama", confiable: true },
   { slug: "newegg", nombre: "Newegg", adaptador: "newegg", confiable: true },
-  // Registrada pero sin implementar: su contrato prohíbe scraping.
+
+  // Registradas pero apagadas. Amazon, porque su contrato exige la PA-API y
+  // esa API exige una cuenta de Associates con ventas. Best Buy, porque no lo
+  // sigo. Prenderlas es poner activa: true.
   { slug: "amazon", nombre: "Amazon", adaptador: "amazon", confiable: false, activa: false },
+  { slug: "bestbuy", nombre: "Best Buy", adaptador: "bestbuy", confiable: true, activa: false },
 ];
 
 async function main() {

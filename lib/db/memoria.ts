@@ -47,6 +47,7 @@ export class DepositoMemoria implements Deposito {
       return {
         ...f,
         ultimaLectura: propias[0]?.ts ?? f.ultimaLectura,
+        terminaEn: propias[0]?.terminaEn ?? f.terminaEn,
         historial: propias.map((o) => o.puestoPy).filter((p): p is number => typeof p === "number"),
       };
     });

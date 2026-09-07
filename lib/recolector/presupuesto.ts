@@ -26,6 +26,8 @@ export const RESERVA_CALIENTE = 0.15;
 export type CandidataLectura = {
   listingId: string;
   tiendaSlug: string;
+  /** Cierre de la subasta, si es una. */
+  terminaEn?: string | null;
   /** Distancia relativa al objetivo: 0 = ya disparó, 0.05 = está al 5%. */
   distancia: number | null;
   /** Precios puestos recientes de este listing, para medir volatilidad. */
@@ -35,11 +37,25 @@ export type CandidataLectura = {
   evento: boolean;
 };
 
-export function tierDe(distancia: number | null): Tier {
+/** Una subasta que cierra dentro de esta ventana es caliente, valga lo que valga. */
+export const CIERRE_CALIENTE_MINUTOS = 90;
+
+export function tierDe(distancia: number | null, terminaEn?: string | null, ahora?: Date): Tier {
+  // El reloj de una subasta manda sobre el precio: si cierra en veinte
+  // minutos, es ahora o nunca aunque esté lejos del objetivo.
+  if (terminaEn) {
+    const faltan = (new Date(terminaEn).getTime() - (ahora ?? new Date()).getTime()) / 60_000;
+    if (faltan > 0 && faltan <= CIERRE_CALIENTE_MINUTOS) return "caliente";
+  }
   if (distancia === null) return "normal"; // sin objetivo: ni urgente ni olvidado
   if (distancia <= UMBRAL_CALIENTE) return "caliente";
   if (distancia >= UMBRAL_FRIO) return "frio";
   return "normal";
+}
+
+/** Una publicación que ya cerró no se lee más: no hay nada que leer. */
+export function terminada(c: CandidataLectura, ahora: Date): boolean {
+  return !!c.terminaEn && new Date(c.terminaEn).getTime() <= ahora.getTime();
 }
 
 /**
@@ -112,8 +128,9 @@ export function planificar(
 
   const vencidas = candidatas
     .filter((c) => !apagadas.has(c.tiendaSlug))
+    .filter((c) => !terminada(c, op.ahora))
     .map((c) => {
-      const tier = tierDe(c.distancia);
+      const tier = tierDe(c.distancia, c.terminaEn, op.ahora);
       return { candidata: c, tier, score: prioridad(c, tier, op.ahora) };
     })
     .filter((x) => vencida(x.candidata, x.tier, op.ahora))
