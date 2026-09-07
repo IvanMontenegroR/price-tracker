@@ -71,6 +71,7 @@ function sintetico(): Entrada {
         url: `https://${t}.example/${productoId}`,
         sku: null,
         vendedor: null,
+        imagenUrl: null,
         ultimaLectura: null,
         terminaEn: null,
         historial: [],

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Boton, Campo } from "@/components/ui";
 import { clienteNavegador } from "@/lib/supabase/navegador";
 
 export default function Entrar() {
@@ -28,32 +29,53 @@ export default function Entrar() {
   }
 
   return (
-    <main className="mx-auto max-w-sm pt-16">
-      <h1 className="text-xl font-semibold">Precio puesto</h1>
-      <p className="mt-1 text-sm text-[color:var(--color-tenue)]">
-        Lo que cuesta de verdad, puesto en Asunción.
-      </p>
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-16">
+      <div className="mb-8">
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-verde/10">
+          <svg viewBox="0 0 64 64" className="h-7 w-7">
+            <path
+              d="M14 44 L26 30 L36 38 L50 20"
+              fill="none"
+              stroke="currentColor"
+              className="text-verde"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="50" cy="20" r="4" className="fill-verde" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Precio puesto</h1>
+        <p className="mt-2 text-sm leading-relaxed text-tenue">
+          Lo que cuesta de verdad un artículo puesto en Asunción: etiqueta, envío, flete, fee e impuesto.
+          La única cifra con la que se decide.
+        </p>
+      </div>
+
       {estado === "listo" ? (
-        <p className="mt-8 text-sm">Te mandé el enlace por mail. Abrilo desde este dispositivo.</p>
+        <div className="rounded-tarjeta border border-verde/20 bg-verde/5 p-4">
+          <p className="text-sm">Te mandé el enlace por mail.</p>
+          <p className="mt-1 text-xs text-tenue">Abrilo desde este mismo dispositivo.</p>
+        </div>
       ) : (
-        <form onSubmit={enviar} className="mt-8 flex gap-2">
-          <input
+        <form onSubmit={enviar} className="space-y-3">
+          <Campo
+            etiqueta="Tu mail"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@mail.com"
-            className="flex-1 rounded-md border border-[color:var(--color-borde)] bg-[color:var(--color-panel)] px-3 py-2 text-sm"
+            placeholder="vos@mail.com"
           />
-          <button
-            disabled={estado === "enviando"}
-            className="rounded-md bg-[color:var(--color-verde)] px-3 py-2 text-sm font-medium text-black disabled:opacity-50"
-          >
-            Entrar
-          </button>
+          <Boton variante="fuerte" className="w-full" disabled={estado === "enviando"}>
+            {estado === "enviando" ? "Enviando…" : "Entrar"}
+          </Boton>
         </form>
       )}
-      {estado === "error" && <p className="mt-3 text-sm text-red-400">{detalle}</p>}
+
+      {estado === "error" && (
+        <p className="mt-3 rounded-xl border border-rojo/30 bg-rojo/10 px-3 py-2 text-sm text-rojo">{detalle}</p>
+      )}
     </main>
   );
 }

@@ -95,6 +95,11 @@ export class DepositoMemoria implements Deposito {
     this.tiendasApagadas.add(slug);
   }
 
+  async actualizarImagen(listingId: string, imagen: string) {
+    const f = this.filas.find((x) => x.listingId === listingId);
+    if (f) f.imagenUrl = imagen;
+  }
+
   async evaluacion(): Promise<Evaluacion> {
     const desde = this.reloj().getTime() - 12 * 3600_000;
     const info = new Map(this.filas.map((f) => [f.listingId, f]));

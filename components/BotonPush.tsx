@@ -59,15 +59,17 @@ export function BotonPush() {
   }
 
   return (
-    <div className="text-xs text-[color:var(--color-tenue)]">
+    <div className="text-xs text-tenue">
       {suscrito ? (
-        <span>Push activo en este dispositivo. El mail sale igual.</span>
+        <p>
+          <span className="text-verde">Push activo</span> en este dispositivo. El mail sale igual.
+        </p>
       ) : (
-        <button onClick={activar} className="underline underline-offset-2 hover:text-[color:var(--color-tinta)]">
-          Activar push en este dispositivo
+        <button onClick={activar} className="compacto text-verde hover:underline">
+          Activar push acá
         </button>
       )}
-      {estado && <span className="ml-2">· {estado}</span>}
+      {estado && <p className="mt-1 text-apagado">{estado}</p>}
     </div>
   );
 }

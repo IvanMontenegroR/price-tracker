@@ -16,6 +16,8 @@ export type Lectura = {
   /** Por defecto "fijo": es lo que son todas las tiendas menos eBay. */
   tipoVenta?: TipoVenta;
   terminaEn?: string | null;
+  /** La foto de la publicación. La trae la tienda; no la cargo a mano. */
+  imagen?: string | null;
   /** Lo que devolvió la fuente, para poder auditar una lectura rara. */
   crudo?: unknown;
 };

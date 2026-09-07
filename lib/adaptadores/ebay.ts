@@ -60,6 +60,9 @@ type RespuestaItem = {
   itemEndDate?: string;
   condition?: string;
   itemWebUrl?: string;
+  image?: { imageUrl?: string };
+  thumbnailImages?: { imageUrl?: string }[];
+  additionalImages?: { imageUrl?: string }[];
 };
 
 const aNumero = (v: string | undefined): number | null => {
@@ -93,6 +96,7 @@ export function leerItem(item: RespuestaItem): Omit<Lectura, "ts"> {
     stock,
     tipoVenta: soloSubasta ? "subasta" : opciones.includes("BEST_OFFER") ? "mejor_oferta" : "fijo",
     terminaEn: item.itemEndDate ?? null,
+    imagen: item.image?.imageUrl ?? item.thumbnailImages?.[0]?.imageUrl ?? null,
     crudo: { condition: item.condition, buyingOptions: opciones },
   };
 }

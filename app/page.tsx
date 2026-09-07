@@ -4,21 +4,19 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Agregar } from "@/components/Agregar";
 import { BotonPush } from "@/components/BotonPush";
-import { DesgloseTabla } from "@/components/Desglose";
-import { calcularPuesto } from "@/lib/costo";
+import { Tarjeta } from "@/components/Tarjeta";
+import { Boton, Esqueleto, Icono } from "@/components/ui";
 import {
+  cargarParametros,
   cargarSeguimiento,
   cargarTiendas,
   cargarUltimaCorrida,
-  fijarObjetivo,
   type Corrida,
   type FilaSeguimiento,
   type Tienda,
 } from "@/lib/datos";
-import { tierDe } from "@/lib/recolector/presupuesto";
 import { clienteNavegador } from "@/lib/supabase/navegador";
-
-const usd = (n: number) => `US$ ${n.toFixed(2)}`;
+import type { Parametros } from "@/lib/tipos";
 
 function haceCuanto(ts: string | null): string {
   if (!ts) return "nunca";
@@ -26,38 +24,30 @@ function haceCuanto(ts: string | null): string {
   if (min < 1) return "recién";
   if (min < 60) return `hace ${Math.round(min)} min`;
   if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
-  return `hace ${Math.round(min / 1440)} días`;
+  return `hace ${Math.round(min / 1440)} d`;
 }
-
-/** Cuánto falta para que cierre una subasta, en corto. */
-function cierre(ts: string | null): string | null {
-  if (!ts) return null;
-  const min = (new Date(ts).getTime() - Date.now()) / 60000;
-  if (min <= 0) return "cerrada";
-  if (min < 60) return `cierra en ${Math.round(min)} min`;
-  if (min < 48 * 60) return `cierra en ${Math.round(min / 60)} h`;
-  return `cierra en ${Math.round(min / 1440)} días`;
-}
-
-const COLOR_TIER: Record<string, string> = {
-  caliente: "text-[color:var(--color-ambar)]",
-  normal: "text-[color:var(--color-tenue)]",
-  frio: "text-[color:var(--color-tenue)]",
-};
 
 export default function Lista() {
   const router = useRouter();
   const [filas, setFilas] = useState<FilaSeguimiento[] | null>(null);
   const [tiendas, setTiendas] = useState<Tienda[]>([]);
   const [corrida, setCorrida] = useState<Corrida | null>(null);
+  const [parametros, setParametros] = useState<Parametros | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [abrirAgregar, setAbrirAgregar] = useState(false);
 
   const refrescar = useCallback(async () => {
     try {
-      const [f, t, c] = await Promise.all([cargarSeguimiento(), cargarTiendas(), cargarUltimaCorrida()]);
+      const [f, t, c, p] = await Promise.all([
+        cargarSeguimiento(),
+        cargarTiendas(),
+        cargarUltimaCorrida(),
+        cargarParametros(),
+      ]);
       setFilas(f);
       setTiendas(t);
       setCorrida(c);
+      setParametros(p);
       setError(null);
     } catch (e) {
       setError(String((e as Error).message));
@@ -78,163 +68,172 @@ export default function Lista() {
     router.replace("/entrar");
   }
 
-  if (filas === null) {
-    return <p className="pt-16 text-center text-sm text-[color:var(--color-tenue)]">Cargando…</p>;
-  }
+  const cumpliendo = (filas ?? []).filter(
+    (f) => f.puesto_py !== null && f.objetivo_puesto !== null && f.puesto_py <= f.objetivo_puesto
+  ).length;
 
   return (
-    <main>
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Lo que sigo</h1>
-          <p className="mt-1 text-sm text-[color:var(--color-tenue)]">
-            Precio puesto en Asunción: etiqueta + envío + flete + fee + impuesto.
-          </p>
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-30 border-b border-borde bg-fondo/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <h1 className="text-base font-semibold leading-tight sm:text-lg">Lo que sigo</h1>
+            <p className="truncate text-[11px] text-tenue sm:text-xs">
+              {filas === null
+                ? "cargando…"
+                : filas.length === 0
+                  ? "todavía nada"
+                  : `${filas.length} producto${filas.length === 1 ? "" : "s"}${cumpliendo ? ` · ${cumpliendo} en objetivo` : ""}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <a
+              href="parametros"
+              className="compacto rounded-xl p-2.5 text-tenue transition hover:bg-panel hover:text-tinta"
+              title="Parámetros de costo"
+            >
+              <Icono nombre="ajustes" className="h-5 w-5" />
+            </a>
+            <button
+              onClick={salir}
+              className="compacto rounded-xl p-2.5 text-tenue transition hover:bg-panel hover:text-tinta"
+              title="Salir"
+            >
+              <Icono nombre="salir" className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-        <button onClick={salir} className="text-xs text-[color:var(--color-tenue)] hover:text-[color:var(--color-tinta)]">
-          salir
-        </button>
       </header>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[color:var(--color-tenue)]">
-        <a href="parametros" className="underline underline-offset-2 hover:text-[color:var(--color-tinta)]">
-          parámetros de costo
-        </a>
-        {corrida && (
-          <span>
-            última corrida {haceCuanto(corrida.inicio)}: {corrida.leidas} lecturas
-            {corrida.fallidas ? `, ${corrida.fallidas} fallidas` : ""}
-            {corrida.presupuesto ? ` · ${corrida.usadas_hoy}/${corrida.presupuesto} del día` : ""}
-          </span>
-        )}
-        <BotonPush />
-      </div>
-
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-
-      <ul className="mt-6 space-y-3">
-        {filas.map((f) => (
-          <Fila key={f.producto_id} f={f} alGuardar={refrescar} />
-        ))}
-      </ul>
-
-      {filas.length === 0 && (
-        <p className="mt-8 text-sm text-[color:var(--color-tenue)]">
-          Todavía no seguís nada. Cargá un producto con su peso y un objetivo.
-        </p>
-      )}
-
-      <Agregar tiendas={tiendas} alAgregar={refrescar} />
-    </main>
-  );
-}
-
-function Fila({ f, alGuardar }: { f: FilaSeguimiento; alGuardar: () => Promise<void> }) {
-  const [objetivo, setObjetivo] = useState(String(f.objetivo_puesto ?? ""));
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // El desglose se recalcula con los parámetros congelados en la observación,
-  // no con los de hoy: la fila explica el número con el que se leyó.
-  const desglose =
-    f.precio !== null && f.tarifa_kg !== null
-      ? calcularPuesto(
-          { precio: f.precio, envioUs: f.envio_us ?? 0, pesoKg: f.peso_kg },
-          { tarifaKg: f.tarifa_kg, feeFijo: f.fee_fijo!, tasaImp: f.tasa_imp! }
-        )
-      : null;
-
-  const delta = desglose && f.objetivo_puesto !== null ? desglose.puesto - f.objetivo_puesto : null;
-  const tier = tierDe(f.distancia);
-
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!f.watch_id) return;
-    const n = Number(objetivo.replace(",", "."));
-    if (!Number.isFinite(n) || n <= 0) return setError("objetivo inválido");
-    setGuardando(true);
-    try {
-      await fijarObjetivo(f.watch_id, n);
-      await alGuardar();
-      setError(null);
-    } catch (err) {
-      setError(String((err as Error).message));
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  return (
-    <li className="rounded-lg border border-[color:var(--color-borde)] bg-[color:var(--color-panel)] p-4">
-      <div className="flex items-baseline justify-between gap-4">
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_296px] lg:gap-8 lg:pb-10">
         <div className="min-w-0">
-          <h2 className="truncate font-medium">{f.nombre}</h2>
-          <p className="mt-0.5 text-xs text-[color:var(--color-tenue)]">
-            {f.peso_kg} kg
-            {f.tienda_nombre ? ` · ${f.tienda_nombre}` : " · sin listing todavía"}
-            {f.condicion && f.condicion !== "nuevo" ? ` · ${f.condicion}` : ""}
-            {" · "}
-            {haceCuanto(f.leido_en)}
-            {f.stock === false && <span className="text-red-400"> · agotado</span>}
-            {desglose && <span className={COLOR_TIER[tier]}> · {tier}</span>}
-            {f.tipo_venta === "subasta" && (
-              // Una puja no es un precio: mientras la subasta no cierre, el
-              // número de arriba puede subir. Decirlo acá o el número miente.
-              <span className="text-[color:var(--color-ambar)]">
-                {" · "}puja{f.termina_en ? `, ${cierre(f.termina_en)}` : ""}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="numero text-lg font-semibold">{desglose ? usd(desglose.puesto) : "—"}</div>
-          {f.tipo_venta === "subasta" && (
-            <div className="text-xs text-[color:var(--color-ambar)]">puesto sobre la puja de ahora</div>
+          {error && (
+            <div className="mb-4 rounded-xl border border-rojo/30 bg-rojo/10 px-4 py-3 text-sm text-rojo">{error}</div>
           )}
-          {delta !== null && (
-            <div className={`numero text-xs ${delta <= 0 ? "text-[color:var(--color-verde)]" : "text-[color:var(--color-tenue)]"}`}>
-              {delta <= 0 ? "−" : "+"}
-              {usd(Math.abs(delta))} vs objetivo
+
+          {filas === null ? (
+            <ul className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="rounded-tarjeta border border-borde bg-panel p-4 sm:p-5">
+                  <div className="flex gap-4">
+                    <Esqueleto className="h-16 w-16 shrink-0 sm:h-20 sm:w-20" />
+                    <div className="flex-1 space-y-2">
+                      <Esqueleto className="h-4 w-2/3" />
+                      <Esqueleto className="h-3 w-1/2" />
+                      <Esqueleto className="h-1 w-full" />
+                    </div>
+                    <Esqueleto className="h-6 w-20 shrink-0" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : filas.length === 0 ? (
+            <div className="rounded-tarjeta border border-dashed border-borde bg-panel/50 px-6 py-14 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-panel-alto text-tenue">
+                <Icono nombre="caja" className="h-6 w-6" />
+              </div>
+              <h2 className="text-sm font-semibold">Todavía no seguís nada</h2>
+              <p className="mx-auto mt-1.5 max-w-xs text-xs text-tenue">
+                Cargá un producto con su peso y el precio puesto al que lo comprarías. El peso es lo único
+                que no se puede leer de la tienda.
+              </p>
+              <Boton variante="fuerte" className="mt-5" onClick={() => setAbrirAgregar(true)}>
+                <Icono nombre="mas" /> Seguir algo
+              </Boton>
             </div>
+          ) : (
+            <ul className="space-y-3">
+              {filas.map((f) => (
+                <Tarjeta key={f.producto_id} f={f} alGuardar={refrescar} />
+              ))}
+            </ul>
           )}
         </div>
-      </div>
 
-      {desglose && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-[color:var(--color-tenue)]">desglose</summary>
-          <div className="mt-2 max-w-sm">
-            <DesgloseTabla d={desglose} />
-            {f.url && (
-              <a href={f.url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline underline-offset-2">
-                ver en {f.tienda_nombre}
-              </a>
+        {/* En escritorio el estado del sistema vive al costado; en celular baja
+            al final, porque lo primero tienen que ser los precios. */}
+        <aside className="mt-8 space-y-3 lg:mt-0">
+          <section className="rounded-tarjeta border border-borde bg-panel p-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-apagado">El recolector</h2>
+            {corrida ? (
+              <>
+                <p className="text-sm">
+                  Última corrida <span className="text-tenue">{haceCuanto(corrida.inicio)}</span>
+                </p>
+                <p className="mt-1 text-xs text-tenue">
+                  {corrida.leidas} lectura{corrida.leidas === 1 ? "" : "s"}
+                  {corrida.fallidas ? `, ${corrida.fallidas} fallida${corrida.fallidas === 1 ? "" : "s"}` : ""}
+                </p>
+                {corrida.presupuesto ? (
+                  <div className="mt-3">
+                    <div className="h-1 overflow-hidden rounded-full bg-borde-suave">
+                      <div
+                        className="barra h-full rounded-full bg-tenue/50"
+                        style={{ width: `${Math.min(100, ((corrida.usadas_hoy ?? 0) / corrida.presupuesto) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="numero mt-1.5 text-[11px] text-apagado">
+                      {corrida.usadas_hoy}/{corrida.presupuesto} peticiones del día
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-xs text-tenue">Todavía no corrió.</p>
             )}
-          </div>
-        </details>
-      )}
+          </section>
 
-      {f.watch_id && (
-        <form onSubmit={guardar} className="mt-3 flex items-center gap-2">
-          <span className="text-xs text-[color:var(--color-tenue)]">objetivo</span>
-          <input
-            value={objetivo}
-            onChange={(e) => setObjetivo(e.target.value)}
-            inputMode="decimal"
-            className="numero w-24 rounded-md border border-[color:var(--color-borde)] bg-[color:var(--color-fondo)] px-2 py-1 text-sm"
-          />
-          <button
-            disabled={guardando}
-            className="text-xs text-[color:var(--color-tenue)] underline underline-offset-2 hover:text-[color:var(--color-tinta)] disabled:opacity-50"
-          >
-            guardar
-          </button>
-          {f.armado === false && (
-            <span className="text-xs text-[color:var(--color-tenue)]">· ya avisé: espera otro 5% de baja</span>
-          )}
-          {error && <span className="text-xs text-red-400">{error}</span>}
-        </form>
-      )}
-    </li>
+          <section className="rounded-tarjeta border border-borde bg-panel p-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-apagado">Costo de traer</h2>
+            {parametros && (
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex justify-between">
+                  <span className="text-tenue">Flete</span>
+                  <span className="numero">US$ {parametros.tarifaKg}/kg</span>
+                </li>
+                <li className="flex justify-between">
+                  <span className="text-tenue">Fee fijo</span>
+                  <span className="numero">US$ {parametros.feeFijo}</span>
+                </li>
+                <li className="flex justify-between">
+                  <span className="text-tenue">Impuesto</span>
+                  <span className="numero">{(parametros.tasaImp * 100).toFixed(0)}%</span>
+                </li>
+              </ul>
+            )}
+            <a href="parametros" className="mt-3 inline-block text-xs text-verde hover:underline">
+              calibrar
+            </a>
+          </section>
+
+          <section className="rounded-tarjeta border border-borde bg-panel p-4">
+            <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-apagado">
+              <Icono nombre="campana" className="h-3.5 w-3.5" /> Avisos
+            </h2>
+            <BotonPush />
+          </section>
+
+          <Boton variante="fuerte" className="hidden w-full lg:inline-flex" onClick={() => setAbrirAgregar(true)}>
+            <Icono nombre="mas" /> Seguir algo nuevo
+          </Boton>
+        </aside>
+      </main>
+
+      {/* En celular, el botón principal está donde llega el pulgar. */}
+      <button
+        onClick={() => setAbrirAgregar(true)}
+        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-verde text-black shadow-lg shadow-black/40 transition active:scale-95 lg:hidden"
+        aria-label="Seguir algo nuevo"
+      >
+        <Icono nombre="mas" className="h-6 w-6" />
+      </button>
+
+      <Agregar
+        abierta={abrirAgregar}
+        cerrar={() => setAbrirAgregar(false)}
+        tiendas={tiendas}
+        alAgregar={refrescar}
+      />
+    </div>
   );
 }

@@ -14,9 +14,7 @@ export const viewport: Viewport = { themeColor: "#0e0f11" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="min-h-dvh">
-        <div className="mx-auto max-w-3xl px-4 py-8">{children}</div>
-      </body>
+      <body className="min-h-dvh">{children}</body>
     </html>
   );
 }

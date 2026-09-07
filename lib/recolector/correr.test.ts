@@ -16,6 +16,7 @@ const fila = (p: Partial<FilaPlanificacion> & { listingId: string }): FilaPlanif
   url: `https://tienda.example/${p.listingId}`,
   sku: null,
   vendedor: null,
+  imagenUrl: null,
   ultimaLectura: null,
   terminaEn: null,
   historial: [],

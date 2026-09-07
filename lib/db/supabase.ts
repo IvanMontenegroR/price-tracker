@@ -34,7 +34,7 @@ export class DepositoSupabase implements Deposito {
       this.sb
         .from("listing")
         .select(
-          "id, usuario_id, producto_id, url, sku, vendedor, producto:producto(nombre, peso_kg), tienda:tienda(slug, adaptador, activa)"
+          "id, usuario_id, producto_id, url, sku, vendedor, imagen_url, producto:producto(nombre, peso_kg), tienda:tienda(slug, adaptador, activa)"
         )
         .eq("activo", true),
       this.sb.from("watch").select("producto_id, objetivo_puesto").eq("activo", true).eq("regla", "R1"),
@@ -103,6 +103,7 @@ export class DepositoSupabase implements Deposito {
           url: l.url,
           sku: l.sku,
           vendedor: l.vendedor,
+          imagenUrl: l.imagen_url ?? null,
           ultimaLectura: ultima?.ts ?? null,
           terminaEn: ultima?.terminaEn ?? null,
           historial: hist.map((h) => h.puesto).filter((p): p is number => p !== null),
@@ -208,6 +209,11 @@ export class DepositoSupabase implements Deposito {
         { onConflict: "tienda_id" }
       );
     if (error) throw new Error(`apagar tienda: ${error.message}`);
+  }
+
+  async actualizarImagen(listingId: string, imagen: string): Promise<void> {
+    const { error } = await this.sb.from("listing").update({ imagen_url: imagen }).eq("id", listingId);
+    if (error) throw new Error(`imagen: ${error.message}`);
   }
 
   async evaluacion(): Promise<Evaluacion> {

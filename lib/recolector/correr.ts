@@ -130,6 +130,12 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
     try {
       const lectura = await adaptador.leer({ url: fila.url, sku: fila.sku, vendedor: fila.vendedor });
       const estado = clasificar(lectura.precio, mediana(fila.historial));
+
+      // La foto viaja con el precio: si cambió, se guarda. No es dato de la
+      // observación —no quiero una URL repetida en cada lectura—, es del listing.
+      if (lectura.imagen && lectura.imagen !== fila.imagenUrl) {
+        await deposito.actualizarImagen(fila.listingId, lectura.imagen).catch(() => {});
+      }
       if (estado !== "ok") fallidas++;
       return {
         ...base,

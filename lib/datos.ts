@@ -16,6 +16,8 @@ export type FilaSeguimiento = {
   nombre: string;
   marca: string | null;
   peso_kg: number;
+  /** La foto: la del producto si la cargué a mano, si no la de la publicación. */
+  imagen: string | null;
   watch_id: string | null;
   objetivo_puesto: number | null;
   armado: boolean | null;

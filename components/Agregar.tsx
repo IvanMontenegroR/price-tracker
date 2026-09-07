@@ -1,107 +1,146 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { agregarSeguimiento } from "@/lib/datos";
+import { useState } from "react";
+import { Boton, Campo, Hoja } from "./ui";
+import { agregarSeguimiento, type Tienda } from "@/lib/datos";
 
-const campo =
-  "w-full rounded-md border border-[color:var(--color-borde)] bg-[color:var(--color-panel)] px-2.5 py-1.5 text-sm";
+const numero = (v: string) => Number(v.replace(",", "."));
 
 export function Agregar({
+  abierta,
+  cerrar,
   tiendas,
   alAgregar,
 }: {
-  tiendas: { slug: string; nombre: string }[];
+  abierta: boolean;
+  cerrar: () => void;
+  tiendas: Tienda[];
   alAgregar: () => Promise<void>;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [peso, setPeso] = useState("");
+  const [objetivo, setObjetivo] = useState("");
+  const [url, setUrl] = useState("");
+  const [tienda, setTienda] = useState("");
+  const [condicion, setCondicion] = useState("nuevo");
   const [error, setError] = useState<string | null>(null);
-  const [pendiente, empezar] = useTransition();
+  const [guardando, setGuardando] = useState(false);
 
-  if (!abierto) {
-    return (
-      <button
-        onClick={() => setAbierto(true)}
-        className="mt-6 w-full rounded-md border border-dashed border-[color:var(--color-borde)] py-2.5 text-sm text-[color:var(--color-tenue)] hover:text-[color:var(--color-tinta)]"
-      >
-        + Seguir algo nuevo
-      </button>
-    );
+  const preferida = tienda || tiendas.find((t) => t.slug === "ebay")?.slug || tiendas[0]?.slug || "";
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    const kg = numero(peso);
+    const meta = numero(objetivo);
+    if (!nombre.trim()) return setError("Falta el nombre.");
+    if (!Number.isFinite(kg) || kg <= 0) return setError("El peso tiene que ser un número mayor a cero.");
+    if (!Number.isFinite(meta) || meta <= 0) return setError("Sin objetivo no hay regla que pueda disparar.");
+
+    setGuardando(true);
+    try {
+      await agregarSeguimiento({
+        nombre: nombre.trim(),
+        pesoKg: kg,
+        objetivo: meta,
+        tiendaSlug: preferida,
+        url: url.trim(),
+        condicion,
+      });
+      await alAgregar();
+      setNombre("");
+      setPeso("");
+      setObjetivo("");
+      setUrl("");
+      setError(null);
+      cerrar();
+    } catch (err) {
+      setError(String((err as Error).message));
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
-    <form
-      action={(datos) =>
-        empezar(async () => {
-          try {
-            await agregarSeguimiento({
-              nombre: String(datos.get("nombre") ?? "").trim(),
-              pesoKg: Number(String(datos.get("peso_kg") ?? "").replace(",", ".")),
-              objetivo: Number(String(datos.get("objetivo") ?? "").replace(",", ".")),
-              tiendaSlug: String(datos.get("tienda") ?? ""),
-              url: String(datos.get("url") ?? "").trim(),
-              condicion: String(datos.get("condicion") ?? "nuevo"),
-            });
-            await alAgregar();
-            setError(null);
-            setAbierto(false);
-          } catch (e) {
-            setError(String((e as Error).message));
-          }
-        })
-      }
-      className="mt-6 space-y-3 rounded-lg border border-[color:var(--color-borde)] bg-[color:var(--color-panel)] p-4"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <label className="col-span-2 block">
-          <span className="text-xs text-[color:var(--color-tenue)]">Producto</span>
-          <input name="nombre" required placeholder="iPhone 17 Pro 256GB" className={campo} />
-        </label>
-        <label className="block">
-          <span className="text-xs text-[color:var(--color-tenue)]">Peso en kg (con caja)</span>
-          <input name="peso_kg" required inputMode="decimal" placeholder="0.4" className={campo} />
-        </label>
-        <label className="block">
-          <span className="text-xs text-[color:var(--color-tenue)]">Objetivo puesto (US$)</span>
-          <input name="objetivo" required inputMode="decimal" placeholder="1100" className={campo} />
-        </label>
-        <label className="block">
-          <span className="text-xs text-[color:var(--color-tenue)]">Tienda</span>
-          <select name="tienda" className={campo} defaultValue={tiendas[0]?.slug}>
-            {tiendas.map((t) => (
-              <option key={t.slug} value={t.slug}>
-                {t.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-xs text-[color:var(--color-tenue)]">Condición</span>
-          <select name="condicion" className={campo} defaultValue="nuevo">
-            <option value="nuevo">nuevo</option>
-            <option value="open_box">open box</option>
-            <option value="reacondicionado">reacondicionado</option>
-          </select>
-        </label>
-        <label className="col-span-2 block">
-          <span className="text-xs text-[color:var(--color-tenue)]">URL del producto en esa tienda</span>
-          <input name="url" placeholder="https://www.bestbuy.com/site/…/6418599.p" className={campo} />
-        </label>
-      </div>
-      <p className="text-xs text-[color:var(--color-tenue)]">
-        El peso es lo único que no se puede leer de la tienda, y sin él no hay precio puesto.
-      </p>
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          disabled={pendiente}
-          className="rounded-md bg-[color:var(--color-verde)] px-3 py-1.5 text-sm font-medium text-black disabled:opacity-50"
-        >
-          Guardar
-        </button>
-        <button type="button" onClick={() => setAbierto(false)} className="px-3 py-1.5 text-sm text-[color:var(--color-tenue)]">
-          Cancelar
-        </button>
-      </div>
-    </form>
+    <Hoja abierta={abierta} cerrar={cerrar} titulo="Seguir algo nuevo">
+      <form onSubmit={guardar} className="space-y-4">
+        <Campo
+          etiqueta="Producto"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="iPhone 17 Pro 256GB"
+          autoFocus
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Campo
+            etiqueta="Peso con caja (kg)"
+            value={peso}
+            onChange={(e) => setPeso(e.target.value)}
+            inputMode="decimal"
+            placeholder="0.45"
+            className="numero"
+            ayuda="Lo único que no se lee de la tienda"
+          />
+          <Campo
+            etiqueta="Objetivo puesto (US$)"
+            value={objetivo}
+            onChange={(e) => setObjetivo(e.target.value)}
+            inputMode="decimal"
+            placeholder="1150"
+            className="numero"
+            ayuda="Ya con flete e impuesto"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-tenue">Tienda</span>
+            <select
+              value={preferida}
+              onChange={(e) => setTienda(e.target.value)}
+              className="w-full rounded-xl border border-borde bg-fondo px-3 py-2.5 text-sm outline-none focus:border-verde/50"
+            >
+              {tiendas.map((t) => (
+                <option key={t.slug} value={t.slug}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-tenue">Condición</span>
+            <select
+              value={condicion}
+              onChange={(e) => setCondicion(e.target.value)}
+              className="w-full rounded-xl border border-borde bg-fondo px-3 py-2.5 text-sm outline-none focus:border-verde/50"
+            >
+              <option value="nuevo">nuevo</option>
+              <option value="usado">usado</option>
+              <option value="open_box">open box</option>
+              <option value="reacondicionado">reacondicionado</option>
+            </select>
+          </label>
+        </div>
+
+        <Campo
+          etiqueta="URL de la publicación"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.ebay.com/itm/145678901234"
+          ayuda="De ahí salen el precio y la foto. Podés cargarla después."
+        />
+
+        {error && <p className="rounded-xl border border-rojo/30 bg-rojo/10 px-3 py-2 text-sm text-rojo">{error}</p>}
+
+        <div className="flex gap-2 pt-1">
+          <Boton variante="fuerte" className="flex-1" disabled={guardando}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </Boton>
+          <Boton type="button" variante="suave" onClick={cerrar}>
+            Cancelar
+          </Boton>
+        </div>
+      </form>
+    </Hoja>
   );
 }

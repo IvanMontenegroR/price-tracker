@@ -19,6 +19,7 @@ export type FilaPlanificacion = {
   url: string;
   sku: string | null;
   vendedor: string | null;
+  imagenUrl: string | null;
   ultimaLectura: string | null;
   /** Cierre de la subasta, de la última lectura. null en precio fijo. */
   terminaEn: string | null;
@@ -78,6 +79,7 @@ export interface Deposito {
   guardarObservaciones(obs: Observacion[]): Promise<Observacion[]>;
   muestrasSalud(): Promise<MuestraTienda[]>;
   apagarTienda(slug: string, motivo: string, hasta: string): Promise<void>;
+  actualizarImagen(listingId: string, imagen: string): Promise<void>;
   evaluacion(): Promise<Evaluacion>;
   registrarAlerta(datos: DatosAlerta): Promise<void>;
   actualizarWatch(

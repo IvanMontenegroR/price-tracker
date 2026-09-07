@@ -62,9 +62,20 @@ export function leerOferta(bloques: unknown[]): Omit<Lectura, "ts"> {
   let moneda = "USD";
   let stock: boolean | null = null;
   let envio: number | null = null;
+  let imagen: string | null = null;
 
   for (const bloque of bloques) {
     for (const nodo of aplanar(bloque)) {
+      // La imagen cuelga del Product, no de la Offer.
+      if (imagen === null && esTipo(nodo, "Product")) {
+        const img = nodo.image;
+        if (typeof img === "string") imagen = img;
+        else if (Array.isArray(img) && typeof img[0] === "string") imagen = img[0];
+        else if (img && typeof img === "object") {
+          const url = (img as Record<string, unknown>).url;
+          if (typeof url === "string") imagen = url;
+        }
+      }
       if (!esTipo(nodo, "Offer") && !esTipo(nodo, "AggregateOffer")) continue;
 
       const p = aNumero(nodo.price ?? nodo.lowPrice ?? nodo.highPrice);
@@ -84,7 +95,7 @@ export function leerOferta(bloques: unknown[]): Omit<Lectura, "ts"> {
     }
   }
 
-  return { precio, envio, moneda, stock };
+  return { precio, envio, moneda, stock, imagen };
 }
 
 export type ConfigJsonLd = {

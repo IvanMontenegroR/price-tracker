@@ -1,19 +1,58 @@
 @import "tailwindcss";
 
+/*
+ * Un sistema chico y consistente. La pantalla existe para una sola cosa:
+ * mirar un número y decidir. Todo lo demás se corre del camino.
+ */
 @theme {
-  --color-fondo: #0e0f11;
-  --color-panel: #17191d;
-  --color-borde: #262a31;
-  --color-tinta: #e8eaed;
-  --color-tenue: #9aa1ab;
-  --color-verde: #4ade80;
+  --color-fondo: #0a0b0d;
+  --color-panel: #121417;
+  --color-panel-alto: #191c21;
+  --color-borde: #23272e;
+  --color-borde-suave: #191d22;
+  --color-tinta: #eef1f4;
+  --color-tenue: #949ca8;
+  --color-apagado: #656d79;
+  --color-verde: #34d399;
   --color-ambar: #fbbf24;
+  --color-rojo: #f87171;
+
+  --radius-tarjeta: 1rem;
 }
 
-html { color-scheme: dark; }
+:root { color-scheme: dark; }
+
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   background: var(--color-fondo);
   color: var(--color-tinta);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* En iOS instalada como PWA, sin esto el contenido queda bajo el notch. */
+  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
 }
-.numero { font-variant-numeric: tabular-nums; }
+
+/* Los precios se comparan de un vistazo: las cifras tienen que alinearse. */
+.numero { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/*
+ * Que el pulgar no tenga que apuntar. Solo controles de verdad: aplicarlo a
+ * `a` y `summary` inflaba media tarjeta, porque son bloques.
+ */
+@media (pointer: coarse) {
+  input, select, .toque { min-height: 44px; }
+}
+
+@keyframes latir { 0%, 100% { opacity: .55 } 50% { opacity: .25 } }
+.esqueleto { animation: latir 1.6s ease-in-out infinite; }
+
+/* Barra de progreso hacia el objetivo. */
+.barra { transition: width .5s cubic-bezier(.22,1,.36,1); }
+
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-borde); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
