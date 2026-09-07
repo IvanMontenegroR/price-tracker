@@ -38,11 +38,12 @@ jobs:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
       # Pages sirve tal cual: sin esto ignora los archivos que empiezan con _
       - run: touch out/.nojekyll
-      # enablement: prende Pages por API si el repo todavía no lo tiene.
-      # Sin esto el primer push falla con "Get Pages site failed".
+      # Pages hay que prenderlo a mano una vez, en Settings → Pages → Source:
+      # GitHub Actions. Probé con enablement: true y no alcanza: crear el sitio
+      # pide permisos de administración del repo, y el GITHUB_TOKEN de un
+      # workflow no los puede tener —`administration` no existe como permiso
+      # otorgable—. Es el único paso de este pipeline que no se automatiza.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
