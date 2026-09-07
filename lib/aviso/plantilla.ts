@@ -1,4 +1,4 @@
-import { desgloseEnTexto, type Desglose } from "../costo";
+import { desgloseEnTexto, type Desglose } from "../costo.ts";
 
 export type ContenidoAlerta = {
   producto: string;

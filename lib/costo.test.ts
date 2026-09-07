@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { calcularPuesto } from "./costo";
-import { PARAMETROS_INICIALES } from "./tipos";
+import { calcularPuesto } from "./costo.ts";
+import { PARAMETROS_INICIALES } from "./tipos.ts";
 
 test("el iPhone de US$999 sale US$1.156,65 puesto", () => {
   // A mano, con los parámetros de arranque (7 USD/kg, 5 fijo, 15%):

@@ -1,9 +1,9 @@
-import { clienteAdmin } from "../supabase/admin";
+import { clienteAdmin } from "../supabase/admin.ts";
 
 /** El cliente ya viene apuntado al schema tracker. */
 type ClienteTracker = ReturnType<typeof clienteAdmin>;
-import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos";
-import type { MuestraTienda } from "../recolector/salud";
+import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos.ts";
+import type { MuestraTienda } from "../recolector/salud.ts";
 import type {
   CandidataEval,
   DatosAlerta,
@@ -13,7 +13,7 @@ import type {
   ResumenCorrida,
   SuscripcionPush,
   WatchConProducto,
-} from "./deposito";
+} from "./deposito.ts";
 
 /** Salto de precio que cuenta como "evento" para priorizar. */
 const SALTO_EVENTO = 0.03;

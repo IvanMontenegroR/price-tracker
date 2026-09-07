@@ -1,6 +1,6 @@
-import { calcularPuesto, type Desglose } from "../costo";
-import type { Observacion, Parametros, Watch } from "../tipos";
-import { pasaAntiRuido, reArmar, type Contexto, type EstadoWatch } from "./antiruido";
+import { calcularPuesto, type Desglose } from "../costo.ts";
+import type { Observacion, Parametros, Watch } from "../tipos.ts";
+import { pasaAntiRuido, reArmar, type Contexto, type EstadoWatch } from "./antiruido.ts";
 
 /**
  * R1 — objetivo: precio_puesto ≤ objetivo_que_yo_puse.

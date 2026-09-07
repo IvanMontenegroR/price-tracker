@@ -1,4 +1,5 @@
-import type { Origen } from "../tipos";
+import type { Origen } from "../tipos.ts";
+import { env } from "../entorno.ts";
 
 /**
  * Todas las tiendas tienen la misma firma: dado un listing, devolver
@@ -44,7 +45,7 @@ export async function traer(url: string, init: RequestInit = {}, timeoutMs = 15_
       ...init,
       signal: ctrl.signal,
       headers: {
-        "user-agent": process.env.USER_AGENT ?? "precio-puesto/0.1 (uso personal)",
+        "user-agent": env("USER_AGENT") ?? "precio-puesto/0.1 (uso personal)",
         "accept-language": "en-US,en;q=0.9",
         ...(init.headers ?? {}),
       },

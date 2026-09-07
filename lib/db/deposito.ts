@@ -1,6 +1,6 @@
-import type { Desglose } from "../costo";
-import type { MuestraTienda } from "../recolector/salud";
-import type { Observacion, Parametros, Watch } from "../tipos";
+import type { Desglose } from "../costo.ts";
+import type { MuestraTienda } from "../recolector/salud.ts";
+import type { Observacion, Parametros, Watch } from "../tipos.ts";
 
 /**
  * Todo lo que el recolector necesita de la base, detrás de una interfaz.

@@ -1,4 +1,4 @@
-import type { Parametros } from "./tipos";
+import type { Parametros } from "./tipos.ts";
 
 /**
  * El precio comparable: lo que sale poner el artículo en mi mano en Asunción.

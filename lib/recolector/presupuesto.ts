@@ -1,5 +1,5 @@
-import { volatilidad } from "../estadistica";
-import type { Tier } from "../tipos";
+import { volatilidad } from "../estadistica.ts";
+import type { Tier } from "../tipos.ts";
 
 /**
  * Frecuencia por presupuesto, no por intervalo.

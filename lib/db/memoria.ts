@@ -1,5 +1,5 @@
-import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos";
-import type { MuestraTienda } from "../recolector/salud";
+import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos.ts";
+import type { MuestraTienda } from "../recolector/salud.ts";
 import type {
   CandidataEval,
   DatosAlerta,
@@ -9,7 +9,7 @@ import type {
   ResumenCorrida,
   SuscripcionPush,
   WatchConProducto,
-} from "./deposito";
+} from "./deposito.ts";
 
 /**
  * Depósito en memoria. Lo usan las pruebas y la corrida de humo: el motor

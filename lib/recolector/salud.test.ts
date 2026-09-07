@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { clasificar, diagnosticar } from "./salud";
+import { clasificar, diagnosticar } from "./salud.ts";
 
 test("más del 30% de lecturas malas apaga la tienda", () => {
   assert.equal(diagnosticar({ tiendaSlug: "x", total: 10, malas: 4 }).apagar, true);

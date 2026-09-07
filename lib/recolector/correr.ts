@@ -1,14 +1,15 @@
-import { adaptadorPara } from "../adaptadores/registro";
-import type { Adaptador } from "../adaptadores/tipos";
-import { enviarEmail } from "../aviso/email";
-import { enviarPush } from "../aviso/push";
-import type { ContenidoAlerta } from "../aviso/plantilla";
-import type { Deposito, FilaPlanificacion, ResumenCorrida, SuscripcionPush } from "../db/deposito";
-import { mediana } from "../estadistica";
-import { evaluarR1, type Candidata } from "../reglas/r1";
-import type { Observacion, Parametros } from "../tipos";
-import { planificar, tierDe, type CandidataLectura } from "./presupuesto";
-import { APAGADO_MINUTOS, clasificar, diagnosticar } from "./salud";
+import { adaptadorPara } from "../adaptadores/registro.ts";
+import type { Adaptador } from "../adaptadores/tipos.ts";
+import { enviarEmail } from "../aviso/email.ts";
+import { enviarPush } from "../aviso/push.ts";
+import type { ContenidoAlerta } from "../aviso/plantilla.ts";
+import type { Deposito, FilaPlanificacion, ResumenCorrida, SuscripcionPush } from "../db/deposito.ts";
+import { envNumero } from "../entorno.ts";
+import { mediana } from "../estadistica.ts";
+import { evaluarR1, type Candidata } from "../reglas/r1.ts";
+import type { Observacion, Parametros } from "../tipos.ts";
+import { planificar, tierDe, type CandidataLectura } from "./presupuesto.ts";
+import { APAGADO_MINUTOS, clasificar, diagnosticar } from "./salud.ts";
 
 /**
  * Una corrida del cron: planifica con el presupuesto, lee, guarda, revisa la
@@ -61,8 +62,8 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
   const deposito = op.deposito;
   const buscarAdaptador = op.adaptadores ?? adaptadorPara;
   const avisar = op.avisar ?? avisadorReal;
-  const presupuestoDiario = op.presupuestoDiario ?? Number(process.env.PRESUPUESTO_DIARIO ?? 2000);
-  const maxPorTick = op.maxPorTick ?? Number(process.env.MAX_POR_TICK ?? 40);
+  const presupuestoDiario = op.presupuestoDiario ?? envNumero("PRESUPUESTO_DIARIO", 2000);
+  const maxPorTick = op.maxPorTick ?? envNumero("MAX_POR_TICK", 40);
 
   const { filas, tiendasApagadas, usadasHoy } = await deposito.planificacion();
   const porListing = new Map(filas.map((f) => [f.listingId, f]));

@@ -1,10 +1,10 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { adaptadorFixture } from "../adaptadores/fixture";
-import type { Adaptador } from "../adaptadores/tipos";
-import { DepositoMemoria } from "../db/memoria";
-import type { FilaPlanificacion, WatchConProducto } from "../db/deposito";
-import { correr } from "./correr";
+import { adaptadorFixture } from "../adaptadores/fixture.ts";
+import type { Adaptador } from "../adaptadores/tipos.ts";
+import { DepositoMemoria } from "../db/memoria.ts";
+import type { FilaPlanificacion, WatchConProducto } from "../db/deposito.ts";
+import { correr } from "./correr.ts";
 
 const fila = (p: Partial<FilaPlanificacion> & { listingId: string }): FilaPlanificacion => ({
   usuarioId: "u1",

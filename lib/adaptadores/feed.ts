@@ -1,4 +1,4 @@
-import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos";
+import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos.ts";
 
 /**
  * Feeds de afiliados (Awin, Impact): la fuente preferida cuando la tienda está.

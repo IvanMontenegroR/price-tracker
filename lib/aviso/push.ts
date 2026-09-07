@@ -1,6 +1,7 @@
 import webpush from "web-push";
-import type { SuscripcionPush } from "../db/deposito";
-import { asunto, type ContenidoAlerta } from "./plantilla";
+import { env } from "../entorno.ts";
+import type { SuscripcionPush } from "../db/deposito.ts";
+import { asunto, type ContenidoAlerta } from "./plantilla.ts";
 
 /**
  * Web Push. En iOS solo funciona si la app está instalada en la pantalla de
@@ -8,9 +9,9 @@ import { asunto, type ContenidoAlerta } from "./plantilla";
  * una suscripción muerta (404/410) se borra en vez de reintentarse.
  */
 function configurar(): boolean {
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  const sujeto = process.env.VAPID_SUBJECT ?? "mailto:nadie@example.com";
+  const pub = env("VAPID_PUBLIC_KEY") ?? env("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+  const priv = env("VAPID_PRIVATE_KEY");
+  const sujeto = env("VAPID_SUBJECT") ?? "mailto:nadie@example.com";
   if (!pub || !priv) return false;
   webpush.setVapidDetails(sujeto, pub, priv);
   return true;

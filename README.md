@@ -39,8 +39,24 @@ lib/recolector/         presupuesto y tiers, circuit breaker, la corrida
 lib/reglas/             R1 y el anti-ruido
 lib/db/                 la misma interfaz contra Supabase o contra memoria
 app/                    una pantalla: lo que sigo, con su desglose
-supabase/migrations/    el esquema con RLS
+supabase/functions/     el recolector, que es donde vive el cron
+supabase/migrations/    el esquema con RLS y el pg_cron
 ```
+
+### Dónde corre cada cosa
+
+El sitio es **estático, en GitHub Pages**. No hay servidor propio, así que la
+pantalla habla con la base directamente y **la RLS es la única autorización**.
+
+El recolector no puede vivir ahí: necesita la `service_role`, la clave privada
+de VAPID y la de Resend, y ninguna de las tres puede tocar el navegador. Corre
+como **edge function de Supabase**, disparada por **pg_cron** cada cinco
+minutos con un secreto en la cabecera guardado en Vault.
+
+Que los disparos no sean exactos no importa. El planificador nunca asumió ticks
+parejos: en cada corrida mira qué está vencido según su cadencia y cuánto
+presupuesto queda. Un tick que llega tarde lee más cosas; uno que se pierde no
+rompe nada.
 
 ### Las tres cosas separadas
 
@@ -122,15 +138,31 @@ app lo vea por PostgREST hay que tenerlo en **Settings → API → Exposed schem
 (ya está agregado por configuración de rol, pero el panel es lo que lo hace
 duradero).
 
+Para desplegar:
+
+1. **Pages** — Settings → Pages → Source: GitHub Actions. Los secrets del repo:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
+2. **La URL del sitio** va en Supabase → Authentication → URL Configuration,
+   como Site URL y como redirect: `https://<usuario>.github.io/price-tracker/`.
+   Sin eso el magic link no vuelve.
+3. **La función** — secrets del repo `SUPABASE_ACCESS_TOKEN` y
+   `SUPABASE_PROJECT_REF`; el workflow la despliega en cada push que toque
+   `lib/` o `supabase/functions/`. Sus variables van con
+   `supabase secrets set` (ver `.env.example`).
+4. **Prender el cron**, que arranca apagado para no pegarle a una función que
+   todavía no existe:
+
+   ```sql
+   select cron.alter_job((select jobid from cron.job where jobname='recolectar'), active := true);
+   ```
+
 ```bash
 npx tsx scripts/sembrar.ts <usuario_id>   # tiendas, parámetros y 10 productos
 npx tsx scripts/recolectar.ts             # una corrida contra la base
 npx tsx scripts/simular.ts --ticks 288    # un día entero sin red y sin base
 npm test                                  # 52 pruebas
 ```
-
-El cron va por Vercel Cron (`vercel.json`), cada 5 minutos, contra
-`/api/cron/recolectar` con `Authorization: Bearer $CRON_SECRET`.
 
 ## Lo que falta
 

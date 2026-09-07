@@ -1,8 +1,8 @@
-import { amazon } from "./amazon";
-import { bestbuy } from "./bestbuy";
-import { adaptadorFixture } from "./fixture";
-import { adaptadorJsonLd } from "./jsonld";
-import type { Adaptador } from "./tipos";
+import { amazon } from "./amazon.ts";
+import { bestbuy } from "./bestbuy.ts";
+import { adaptadorFixture } from "./fixture.ts";
+import { adaptadorJsonLd } from "./jsonld.ts";
+import type { Adaptador } from "./tipos.ts";
 
 /**
  * El catálogo de adaptadores. Agregar una tienda es agregar una línea acá.

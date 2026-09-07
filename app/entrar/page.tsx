@@ -12,9 +12,12 @@ export default function Entrar() {
     e.preventDefault();
     setEstado("enviando");
     const sb = clienteNavegador();
+    // El sitio es estático: no hay ruta que canjee el código. El enlace
+    // vuelve a la portada y el cliente lo canjea al cargar.
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
     const { error } = await sb.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${location.origin}${base}/` },
     });
     if (error) {
       setEstado("error");

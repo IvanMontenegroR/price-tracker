@@ -6,6 +6,9 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Deno exige extensión en los imports relativos y el motor corre también
+    // ahí; el bundler de Next resuelve el archivo exacto sin problema.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -18,5 +21,7 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // Las edge functions corren en Deno, con su propio deno.json y sus
+  // propios globals. No las chequea el tsconfig de Next.
+  "exclude": ["node_modules", "supabase/functions"]
 }

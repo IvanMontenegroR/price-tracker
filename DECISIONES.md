@@ -8,6 +8,7 @@ mostró que estaba mal en el diseño.
 | Tema | Decisión |
 |---|---|
 | Repo | Proyecto propio, separado del juego de Olimpia. |
+| Hosting | GitHub Pages para la pantalla (export estático) y edge function de Supabase para el recolector, disparada por pg_cron. Sin Vercel: el sitio no necesita servidor y lo que sí lo necesita ya tiene uno. |
 | Supabase | Schema `tracker` dentro del proyecto **Forge** que ya existe, en vez de un proyecto nuevo: el plan free topa en dos proyectos activos y un schema aparte aísla igual. |
 | Fuentes | Sin cuenta de afiliado aprobada: se arranca con API oficial de Best Buy y JSON-LD para B&H, Adorama y Newegg. El adaptador de feeds queda escrito y probado, esperando la cuenta. |
 | Avisos | Email (Resend) **y** Web Push desde el día uno. El push es el rápido; el mail es el que llega igual cuando iOS desinstala la PWA o vence la suscripción. |
@@ -40,6 +41,21 @@ mostró que estaba mal en el diseño.
    puede ser cierto (cero, negativo, 20× o 1/50 de la mediana). Un 60% de
    descuento **no** es absurdo: es exactamente lo que R3 tiene que poder ver.
 
+## Lo que costó el cambio a Pages
+
+Pasar la pantalla a estático sacó toda la capa de servidor: server actions,
+rutas `/api` y el middleware de sesión. Las escrituras van ahora del navegador
+a la base, y **la RLS pasó de ser una red de seguridad a ser la única
+autorización que existe**. El motor de `lib/` no se tocó: lo mismo que corría
+en la ruta de Vercel corre ahora en Deno.
+
+Dos cosas que eso obligó:
+
+- `process.env` no existe en Deno ni en el navegador. Se centralizó en
+  `lib/entorno.ts`, que resuelve `Deno.env`, `process.env` o nada.
+- Deno exige extensión en los imports relativos, así que todo `lib/` importa
+  con `.ts`. El bundler de Next resuelve el archivo exacto sin quejarse.
+
 ## Cosas que quedaron sin verificar
 
 - **Los pesos de `data/productos.json` son estimaciones mías**, no medidas. Un
@@ -50,6 +66,9 @@ mostró que estaba mal en el diseño.
   donde se construyó esto no tiene salida a internet hacia Best Buy, B&H,
   Adorama ni Newegg. El parseo está probado con HTML de muestra; la primera
   corrida real va a decir qué tienda cambió el formato.
+- **`npm:web-push` en Deno.** El envío de push usa la librería de Node por
+  compatibilidad del runtime de Supabase. Es lo primero a mirar en el primer
+  despliegue; si falla, hay que escribir la firma VAPID con Web Crypto.
 - **El envío en EE.UU. casi nunca viene en el JSON-LD.** Hoy queda en `null` y
   suma 0 al puesto. Si el courier no es el que factura ese tramo, hay que
   cargarlo por tienda.

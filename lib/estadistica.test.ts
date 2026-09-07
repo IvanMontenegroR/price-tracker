@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { mediana, percentil, volatilidad } from "./estadistica";
+import { mediana, percentil, volatilidad } from "./estadistica.ts";
 
 test("la mediana ignora el outlier que el promedio se comería", () => {
   const precios = [1000, 1010, 990, 1005, 40];

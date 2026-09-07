@@ -1,11 +1,17 @@
 {
   "name": "Precio puesto",
   "short_name": "Puesto",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0e0f11",
   "theme_color": "#0e0f11",
   "icons": [
-    { "src": "/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "./icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

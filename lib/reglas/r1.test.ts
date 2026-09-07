@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { PARAMETROS_INICIALES, type Observacion, type Watch } from "../tipos";
-import { evaluarR1, type Candidata } from "./r1";
+import { PARAMETROS_INICIALES, type Observacion, type Watch } from "../tipos.ts";
+import { evaluarR1, type Candidata } from "./r1.ts";
 
 const ahora = new Date("2026-09-07T12:00:00Z");
 

@@ -1,4 +1,4 @@
-import type { Regla } from "../tipos";
+import type { Regla } from "../tipos.ts";
 
 /**
  * El anti-ruido es el producto. Sin esto la herramienta se vuelve inusable

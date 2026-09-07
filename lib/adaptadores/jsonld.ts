@@ -1,4 +1,4 @@
-import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos";
+import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos.ts";
 
 /**
  * Scraping liviano y genérico: casi todas las tiendas grandes publican

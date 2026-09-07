@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { guardarSuscripcionPush } from "@/lib/datos";
+
+// En Pages el sitio cuelga de /price-tracker/, y el service worker tiene
+// que registrarse dentro de ese scope o el navegador lo rechaza.
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const base64ABuffer = (base64: string): ArrayBuffer => {
   const relleno = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -16,7 +21,9 @@ const base64ABuffer = (base64: string): ArrayBuffer => {
  * está instalada en la pantalla de inicio. Por eso el botón dice qué pasa y
  * el mail sale igual.
  */
-export function BotonPush({ clavePublica }: { clavePublica: string | null }) {
+const CLAVE_PUBLICA = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null;
+
+export function BotonPush() {
   const [estado, setEstado] = useState<string>("");
   const [suscrito, setSuscrito] = useState(false);
 
@@ -32,23 +39,18 @@ export function BotonPush({ clavePublica }: { clavePublica: string | null }) {
   }, []);
 
   async function activar() {
-    if (!clavePublica) return setEstado("faltan las claves VAPID en el servidor");
+    if (!CLAVE_PUBLICA) return setEstado("faltan las claves VAPID en el build");
     try {
-      const reg = await navigator.serviceWorker.register("/sw.js");
+      const reg = await navigator.serviceWorker.register(`${BASE}/sw.js`, { scope: `${BASE}/` });
       await navigator.serviceWorker.ready;
       const permiso = await Notification.requestPermission();
       if (permiso !== "granted") return setEstado("permiso denegado");
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: base64ABuffer(clavePublica),
+        applicationServerKey: base64ABuffer(CLAVE_PUBLICA),
       });
-      const res = await fetch("/api/push/suscribir", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(sub),
-      });
-      if (!res.ok) return setEstado(`no se pudo guardar: ${await res.text()}`);
+      await guardarSuscripcionPush(sub.toJSON());
       setSuscrito(true);
       setEstado("push activo en este dispositivo");
     } catch (e) {

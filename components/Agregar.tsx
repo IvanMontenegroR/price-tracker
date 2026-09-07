@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { agregarSeguimiento } from "@/app/acciones";
+import { agregarSeguimiento } from "@/lib/datos";
 
 const campo =
   "w-full rounded-md border border-[color:var(--color-borde)] bg-[color:var(--color-panel)] px-2.5 py-1.5 text-sm";
 
-export function Agregar({ tiendas }: { tiendas: { slug: string; nombre: string }[] }) {
+export function Agregar({
+  tiendas,
+  alAgregar,
+}: {
+  tiendas: { slug: string; nombre: string }[];
+  alAgregar: () => Promise<void>;
+}) {
   const [abierto, setAbierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, empezar] = useTransition();
@@ -26,11 +32,20 @@ export function Agregar({ tiendas }: { tiendas: { slug: string; nombre: string }
     <form
       action={(datos) =>
         empezar(async () => {
-          const r = await agregarSeguimiento(datos);
-          if (r?.error) setError(r.error);
-          else {
+          try {
+            await agregarSeguimiento({
+              nombre: String(datos.get("nombre") ?? "").trim(),
+              pesoKg: Number(String(datos.get("peso_kg") ?? "").replace(",", ".")),
+              objetivo: Number(String(datos.get("objetivo") ?? "").replace(",", ".")),
+              tiendaSlug: String(datos.get("tienda") ?? ""),
+              url: String(datos.get("url") ?? "").trim(),
+              condicion: String(datos.get("condicion") ?? "nuevo"),
+            });
+            await alAgregar();
             setError(null);
             setAbierto(false);
+          } catch (e) {
+            setError(String((e as Error).message));
           }
         })
       }

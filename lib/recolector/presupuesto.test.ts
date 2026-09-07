@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { planificar, score, tierDe, type CandidataLectura } from "./presupuesto";
+import { planificar, score, tierDe, type CandidataLectura } from "./presupuesto.ts";
 
 const ahora = new Date("2026-09-07T12:00:00Z");
 const hace = (min: number) => new Date(ahora.getTime() - min * 60_000).toISOString();

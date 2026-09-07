@@ -1,4 +1,4 @@
-import { NoImplementado, type Adaptador } from "./tipos";
+import { NoImplementado, type Adaptador } from "./tipos.ts";
 
 /**
  * Amazon: nunca scrapear.

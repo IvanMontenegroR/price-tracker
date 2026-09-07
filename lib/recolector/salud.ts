@@ -1,4 +1,4 @@
-import type { EstadoLectura } from "../tipos";
+import type { EstadoLectura } from "../tipos.ts";
 
 /**
  * Circuit breaker por tienda.

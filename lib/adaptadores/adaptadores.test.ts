@@ -1,11 +1,11 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { amazon } from "./amazon";
-import { skuDeUrl } from "./bestbuy";
-import { COLUMNAS_AWIN, lecturaDeFila, parsearCsv } from "./feed";
-import { adaptadorFixture } from "./fixture";
-import { extraerBloquesJsonLd, leerOferta } from "./jsonld";
-import { NoImplementado } from "./tipos";
+import { amazon } from "./amazon.ts";
+import { skuDeUrl } from "./bestbuy.ts";
+import { COLUMNAS_AWIN, lecturaDeFila, parsearCsv } from "./feed.ts";
+import { adaptadorFixture } from "./fixture.ts";
+import { extraerBloquesJsonLd, leerOferta } from "./jsonld.ts";
+import { NoImplementado } from "./tipos.ts";
 
 test("Amazon está detrás de la interfaz y sin implementar", async () => {
   assert.equal(amazon.disponible, false);

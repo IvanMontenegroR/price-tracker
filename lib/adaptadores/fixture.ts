@@ -1,4 +1,4 @@
-import { ahora, type Adaptador, type Lectura, type PedidoLectura } from "./tipos";
+import { ahora, type Adaptador, type Lectura, type PedidoLectura } from "./tipos.ts";
 
 /**
  * Adaptador de prueba: precios deterministas derivados de la URL, con una

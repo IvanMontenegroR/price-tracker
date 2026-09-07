@@ -1,4 +1,5 @@
-import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos";
+import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos.ts";
+import { env } from "../entorno.ts";
 
 /**
  * Best Buy: API oficial. La clave es gratis y el uso está permitido, así que
@@ -18,7 +19,7 @@ export const bestbuy: Adaptador = {
   origen: "api",
   disponible: true,
   async leer(pedido: PedidoLectura): Promise<Lectura> {
-    const clave = process.env.BESTBUY_API_KEY;
+    const clave = env("BESTBUY_API_KEY");
     if (!clave) throw new Error("falta BESTBUY_API_KEY");
 
     const sku = pedido.sku ?? skuDeUrl(pedido.url);

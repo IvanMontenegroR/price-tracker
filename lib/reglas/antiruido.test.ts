@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { pasaAntiRuido, reArmar, TECHO_DIARIO } from "./antiruido";
+import { pasaAntiRuido, reArmar, TECHO_DIARIO } from "./antiruido.ts";
 
 const ahora = new Date("2026-09-07T12:00:00Z");
 const armado = { ultimaAlertaEn: null, ultimoPuestoAlertado: null, armado: true };
