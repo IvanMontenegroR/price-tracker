@@ -1,5 +1,6 @@
 import type { Desglose } from "../costo.ts";
 import type { MuestraTienda } from "../recolector/salud.ts";
+import type { Candidato, ProductoABuscar } from "../descubrimiento/descubrir.ts";
 import type { Observacion, Parametros, Watch } from "../tipos.ts";
 
 /**
@@ -80,6 +81,13 @@ export interface Deposito {
   muestrasSalud(): Promise<MuestraTienda[]>;
   apagarTienda(slug: string, motivo: string, hasta: string): Promise<void>;
   actualizarImagen(listingId: string, imagen: string): Promise<void>;
+
+  /** Productos a los que les toca búsqueda, con lo que ya se les propuso. */
+  productosParaBuscar(horas: number, limite: number): Promise<ProductoABuscar[]>;
+  guardarCandidatos(candidatos: Candidato[]): Promise<void>;
+  /** Convierte un candidato en listing y lo marca aceptado. */
+  adoptar(candidatos: Candidato[]): Promise<number>;
+  marcarBuscado(productoId: string): Promise<void>;
   evaluacion(): Promise<Evaluacion>;
   registrarAlerta(datos: DatosAlerta): Promise<void>;
   actualizarWatch(

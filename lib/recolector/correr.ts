@@ -4,6 +4,7 @@ import { enviarEmail } from "../aviso/email.ts";
 import { enviarPush } from "../aviso/push.ts";
 import type { ContenidoAlerta } from "../aviso/plantilla.ts";
 import type { Deposito, FilaPlanificacion, ResumenCorrida, SuscripcionPush } from "../db/deposito.ts";
+import { buscarPara, repartir } from "../descubrimiento/descubrir.ts";
 import { envNumero } from "../entorno.ts";
 import { mediana } from "../estadistica.ts";
 import { evaluarR1, type Candidata } from "../reglas/r1.ts";
@@ -31,6 +32,9 @@ export const avisadorReal: Avisador = async (destino, contenido) => {
   return canales;
 };
 
+/** Cada cuánto se vuelve a buscar publicaciones de un producto. */
+export const HORAS_ENTRE_BUSQUEDAS = 24;
+
 export type OpcionesCorrida = {
   deposito: Deposito;
   adaptadores?: (clave: string) => Adaptador;
@@ -39,6 +43,10 @@ export type OpcionesCorrida = {
   concurrencia?: number;
   ahora?: Date;
   avisar?: Avisador;
+  /** Productos a los que buscarles publicaciones por corrida. 0 lo apaga. */
+  busquedasPorTick?: number;
+  /** Catálogo de tiendas que se pueden buscar. */
+  tiendasBuscables?: { slug: string; adaptador: Adaptador }[];
 };
 
 async function enTanda<T, R>(xs: readonly T[], n: number, f: (x: T) => Promise<R>): Promise<R[]> {
@@ -54,7 +62,13 @@ async function enTanda<T, R>(xs: readonly T[], n: number, f: (x: T) => Promise<R
   return salida;
 }
 
-export type Resultado = ResumenCorrida & { alertas: number; motivos: Record<string, string> };
+export type Resultado = ResumenCorrida & {
+  alertas: number;
+  motivos: Record<string, string>;
+  /** Publicaciones nuevas adoptadas solas y candidatas que esperan decisión. */
+  descubiertas: number;
+  porRevisar: number;
+};
 
 export async function correr(op: OpcionesCorrida): Promise<Resultado> {
   const ahora = op.ahora ?? new Date();
@@ -244,6 +258,35 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
     alertas++;
   }
 
+  // ── Descubrimiento ────────────────────────────────────────────────────────
+  // Al final y con lo que sobró del presupuesto: releer lo que ya sigo vale
+  // más que encontrar algo nuevo, porque de lo que ya sigo salen las alertas.
+  let descubiertas = 0;
+  let porRevisar = 0;
+  const cupoBusquedas = Math.min(
+    op.busquedasPorTick ?? envNumero("BUSQUEDAS_POR_TICK", 2),
+    Math.max(0, presupuestoDiario - usadasHoy - plan.aLeer.length)
+  );
+
+  if (cupoBusquedas > 0) {
+    const buscables = (op.tiendasBuscables ?? tiendasBuscablesPorDefecto(buscarAdaptador)).filter(
+      (t) => !tiendasApagadas.has(t.slug)
+    );
+    if (buscables.length) {
+      for (const producto of await deposito.productosParaBuscar(HORAS_ENTRE_BUSQUEDAS, cupoBusquedas)) {
+        const parametros = await parametrosDe(producto.usuarioId);
+        const { candidatos, errores: erroresBusqueda } = await buscarPara(producto, buscables, parametros);
+        Object.assign(errores, erroresBusqueda);
+
+        const { adoptar, revisar } = repartir(candidatos);
+        await deposito.guardarCandidatos([...adoptar, ...revisar]);
+        descubiertas += await deposito.adoptar(adoptar);
+        porRevisar += revisar.length;
+        await deposito.marcarBuscado(producto.productoId);
+      }
+    }
+  }
+
   const resumen: Resultado = {
     inicio,
     fin: new Date().toISOString(),
@@ -254,6 +297,8 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
     usadasHoy: usadasHoy + plan.aLeer.length,
     alertas,
     motivos,
+    descubiertas,
+    porRevisar,
     detalle: {
       tiers: plan.aLeer.reduce<Record<string, number>>((acc, x) => {
         acc[x.tier] = (acc[x.tier] ?? 0) + 1;
@@ -263,11 +308,27 @@ export async function correr(op: OpcionesCorrida): Promise<Resultado> {
       apagadas,
       errores,
       alertas,
+      descubiertas,
+      porRevisar,
     },
   };
 
   await deposito.registrarCorrida(resumen);
   return resumen;
+}
+
+/** Las tiendas del registro que saben buscar. */
+function tiendasBuscablesPorDefecto(buscar: (clave: string) => Adaptador) {
+  const salida: { slug: string; adaptador: Adaptador }[] = [];
+  for (const clave of ["ebay"]) {
+    try {
+      const adaptador = buscar(clave);
+      if (adaptador.buscar && adaptador.disponible) salida.push({ slug: clave, adaptador });
+    } catch {
+      // Un adaptador que no está en el registro simplemente no se busca.
+    }
+  }
+  return salida;
 }
 
 export { tierDe };

@@ -1,4 +1,5 @@
 import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos.ts";
+import type { Candidato, ProductoABuscar } from "../descubrimiento/descubrir.ts";
 import type { MuestraTienda } from "../recolector/salud.ts";
 import type {
   CandidataEval,
@@ -98,6 +99,28 @@ export class DepositoMemoria implements Deposito {
   async actualizarImagen(listingId: string, imagen: string) {
     const f = this.filas.find((x) => x.listingId === listingId);
     if (f) f.imagenUrl = imagen;
+  }
+
+  productosBuscables: ProductoABuscar[] = [];
+  candidatos: Candidato[] = [];
+  adoptados: Candidato[] = [];
+  buscados: string[] = [];
+
+  async productosParaBuscar(_horas: number, limite: number) {
+    return this.productosBuscables.slice(0, limite);
+  }
+
+  async guardarCandidatos(candidatos: Candidato[]) {
+    this.candidatos.push(...candidatos);
+  }
+
+  async adoptar(candidatos: Candidato[]) {
+    this.adoptados.push(...candidatos);
+    return candidatos.length;
+  }
+
+  async marcarBuscado(productoId: string) {
+    this.buscados.push(productoId);
   }
 
   async evaluacion(): Promise<Evaluacion> {

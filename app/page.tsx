@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Agregar } from "@/components/Agregar";
+import { Candidatos } from "@/components/Candidatos";
 import { BotonPush } from "@/components/BotonPush";
 import { Tarjeta } from "@/components/Tarjeta";
 import { Boton, Esqueleto, Icono } from "@/components/ui";
 import {
+  cargarCandidatos,
   cargarParametros,
   cargarSeguimiento,
   cargarTiendas,
   cargarUltimaCorrida,
+  type CandidatoPendiente,
   type Corrida,
   type FilaSeguimiento,
   type Tienda,
@@ -35,19 +38,23 @@ export default function Lista() {
   const [parametros, setParametros] = useState<Parametros | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [abrirAgregar, setAbrirAgregar] = useState(false);
+  const [candidatos, setCandidatos] = useState<CandidatoPendiente[]>([]);
+  const [abrirCandidatos, setAbrirCandidatos] = useState(false);
 
   const refrescar = useCallback(async () => {
     try {
-      const [f, t, c, p] = await Promise.all([
+      const [f, t, c, p, k] = await Promise.all([
         cargarSeguimiento(),
         cargarTiendas(),
         cargarUltimaCorrida(),
         cargarParametros(),
+        cargarCandidatos(),
       ]);
       setFilas(f);
       setTiendas(t);
       setCorrida(c);
       setParametros(p);
+      setCandidatos(k);
       setError(null);
     } catch (e) {
       setError(String((e as Error).message));
@@ -87,6 +94,14 @@ export default function Lista() {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {candidatos.length > 0 && (
+              <button
+                onClick={() => setAbrirCandidatos(true)}
+                className="mr-1 rounded-full border border-ambar/25 bg-ambar/10 px-2.5 py-1 text-xs font-medium text-ambar transition hover:bg-ambar/15"
+              >
+                {candidatos.length} por revisar
+              </button>
+            )}
             <a
               href="parametros"
               className="compacto rounded-xl p-2.5 text-tenue transition hover:bg-panel hover:text-tinta"
@@ -164,6 +179,9 @@ export default function Lista() {
                   {corrida.leidas} lectura{corrida.leidas === 1 ? "" : "s"}
                   {corrida.fallidas ? `, ${corrida.fallidas} fallida${corrida.fallidas === 1 ? "" : "s"}` : ""}
                 </p>
+                {corrida.leidas === 0 && filas !== null && filas.length > 0 && (
+                  <p className="mt-1 text-xs text-tenue">Buscando publicaciones para tus productos.</p>
+                )}
                 {corrida.presupuesto ? (
                   <div className="mt-3">
                     <div className="h-1 overflow-hidden rounded-full bg-borde-suave">
@@ -227,6 +245,13 @@ export default function Lista() {
       >
         <Icono nombre="mas" className="h-6 w-6" />
       </button>
+
+      <Candidatos
+        candidatos={candidatos}
+        abierta={abrirCandidatos}
+        cerrar={() => setAbrirCandidatos(false)}
+        alResolver={refrescar}
+      />
 
       <Agregar
         abierta={abrirAgregar}

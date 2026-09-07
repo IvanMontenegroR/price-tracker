@@ -3,6 +3,7 @@ import { clienteAdmin } from "../supabase/admin.ts";
 /** El cliente ya viene apuntado al schema tracker. */
 type ClienteTracker = ReturnType<typeof clienteAdmin>;
 import { PARAMETROS_INICIALES, type Observacion, type Parametros } from "../tipos.ts";
+import type { Candidato, ProductoABuscar } from "../descubrimiento/descubrir.ts";
 import type { MuestraTienda } from "../recolector/salud.ts";
 import type {
   CandidataEval,
@@ -214,6 +215,112 @@ export class DepositoSupabase implements Deposito {
   async actualizarImagen(listingId: string, imagen: string): Promise<void> {
     const { error } = await this.sb.from("listing").update({ imagen_url: imagen }).eq("id", listingId);
     if (error) throw new Error(`imagen: ${error.message}`);
+  }
+
+  async productosParaBuscar(horas: number, limite: number): Promise<ProductoABuscar[]> {
+    const corte = new Date(Date.now() - horas * 3.6e6).toISOString();
+    const { data, error } = await this.sb
+      .from("producto")
+      .select("id, usuario_id, nombre, peso_kg, buscado_en, watch:watch(objetivo_puesto, regla)")
+      .or(`buscado_en.is.null,buscado_en.lt.${corte}`)
+      .order("buscado_en", { ascending: true, nullsFirst: true })
+      .limit(limite);
+    if (error) throw new Error(`productos a buscar: ${error.message}`);
+    if (!data?.length) return [];
+
+    const ids = data.map((p: any) => p.id);
+    // Lo que ya es listing y lo que ya se propuso —aceptado o rechazado— no
+    // se vuelve a proponer.
+    const [{ data: listings }, { data: candidatos }] = await Promise.all([
+      this.sb.from("listing").select("producto_id, url").in("producto_id", ids),
+      this.sb.from("candidato").select("producto_id, url").in("producto_id", ids),
+    ]);
+    const conocidas = new Map<string, Set<string>>();
+    for (const fila of [...(listings ?? []), ...(candidatos ?? [])] as any[]) {
+      const set = conocidas.get(fila.producto_id) ?? new Set<string>();
+      set.add(fila.url);
+      conocidas.set(fila.producto_id, set);
+    }
+
+    return data.map((p: any) => ({
+      productoId: p.id,
+      usuarioId: p.usuario_id,
+      nombre: p.nombre,
+      pesoKg: Number(p.peso_kg),
+      objetivoPuesto:
+        p.watch?.find?.((w: any) => w.regla === "R1")?.objetivo_puesto != null
+          ? Number(p.watch.find((w: any) => w.regla === "R1").objetivo_puesto)
+          : null,
+      conocidas: conocidas.get(p.id) ?? new Set<string>(),
+    }));
+  }
+
+  private async tiendaPorSlug(slug: string): Promise<string | null> {
+    const { data } = await this.sb.from("tienda").select("id").eq("slug", slug).maybeSingle();
+    return data?.id ?? null;
+  }
+
+  async guardarCandidatos(candidatos: Candidato[]): Promise<void> {
+    if (!candidatos.length) return;
+    const filas = [];
+    for (const c of candidatos) {
+      const tiendaId = await this.tiendaPorSlug(c.tiendaSlug);
+      if (!tiendaId) continue;
+      filas.push({
+        usuario_id: c.usuarioId,
+        producto_id: c.productoId,
+        tienda_id: tiendaId,
+        url: c.url,
+        sku: c.sku,
+        titulo: c.titulo,
+        precio: c.precio,
+        envio_us: c.envio,
+        moneda: c.moneda,
+        condicion: c.condicion,
+        tipo_venta: c.tipoVenta,
+        termina_en: c.terminaEn,
+        imagen_url: c.imagen,
+        vendedor: c.vendedor,
+        puesto_estimado: c.puestoEstimado,
+        puntaje: c.puntaje,
+        motivos: c.motivos,
+        estado: c.decision === "adoptar" ? "aceptado" : "pendiente",
+      });
+    }
+    // onConflict sin update: un candidato ya visto no se pisa ni se resucita.
+    const { error } = await this.sb.from("candidato").upsert(filas, {
+      onConflict: "producto_id,url",
+      ignoreDuplicates: true,
+    });
+    if (error) throw new Error(`guardar candidatos: ${error.message}`);
+  }
+
+  async adoptar(candidatos: Candidato[]): Promise<number> {
+    let adoptados = 0;
+    for (const c of candidatos) {
+      const tiendaId = await this.tiendaPorSlug(c.tiendaSlug);
+      if (!tiendaId) continue;
+      const { error } = await this.sb.from("listing").upsert(
+        {
+          usuario_id: c.usuarioId,
+          producto_id: c.productoId,
+          tienda_id: tiendaId,
+          url: c.url,
+          sku: c.sku,
+          vendedor: c.vendedor,
+          condicion: c.condicion ?? "nuevo",
+          imagen_url: c.imagen,
+          activo: true,
+        },
+        { onConflict: "producto_id,tienda_id,url", ignoreDuplicates: true }
+      );
+      if (!error) adoptados++;
+    }
+    return adoptados;
+  }
+
+  async marcarBuscado(productoId: string): Promise<void> {
+    await this.sb.from("producto").update({ buscado_en: new Date().toISOString() }).eq("id", productoId);
   }
 
   async evaluacion(): Promise<Evaluacion> {

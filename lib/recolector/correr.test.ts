@@ -180,3 +180,91 @@ test("con muchos listings el fixture llena la tabla de observaciones", async () 
   assert.equal(r.leidas, 12);
   assert.equal(d.observaciones.filter((o) => o.estado === "ok").length, 12);
 });
+
+test("descubre publicaciones solo, y guarda para revisar lo dudoso", async () => {
+  const d = new DepositoMemoria();
+  d.productosBuscables = [
+    {
+      productoId: "p1",
+      usuarioId: "u1",
+      nombre: "Sony WH-1000XM6",
+      pesoKg: 1,
+      objetivoPuesto: 360,
+      conocidas: new Set<string>(),
+    },
+  ];
+
+  const buscable: Adaptador = {
+    slug: "ebay",
+    nombre: "eBay",
+    origen: "api",
+    disponible: true,
+    leer: async () => ({ precio: null, envio: null, moneda: "USD", stock: null, ts: new Date().toISOString() }),
+    buscar: async () => [
+      {
+        url: "https://e/1",
+        sku: "1",
+        titulo: "Sony WH-1000XM6 Wireless Noise Canceling Headphones",
+        precio: 300,
+        envio: 0,
+        moneda: "USD",
+        condicion: "nuevo" as const,
+        tipoVenta: "fijo" as const,
+        terminaEn: null,
+        imagen: null,
+        vendedor: "v",
+      },
+      {
+        url: "https://e/2",
+        sku: "2",
+        titulo: "Sony 1000XM6 headphones",
+        precio: 305,
+        envio: 0,
+        moneda: "USD",
+        condicion: "usado" as const,
+        tipoVenta: "fijo" as const,
+        terminaEn: null,
+        imagen: null,
+        vendedor: "v",
+      },
+      {
+        url: "https://e/3",
+        sku: "3",
+        titulo: "Case for Sony WH-1000XM6 hard shell",
+        precio: 12,
+        envio: 0,
+        moneda: "USD",
+        condicion: "nuevo" as const,
+        tipoVenta: "fijo" as const,
+        terminaEn: null,
+        imagen: null,
+        vendedor: "v",
+      },
+    ],
+  };
+
+  const r = await correr({
+    deposito: d,
+    adaptadores: () => buscable,
+    tiendasBuscables: [{ slug: "ebay", adaptador: buscable }],
+    avisar: async () => ({}),
+  });
+
+  assert.equal(r.descubiertas, 1);
+  assert.equal(r.porRevisar, 1);
+  assert.equal(d.adoptados[0].url, "https://e/1");
+  assert.equal(d.buscados[0], "p1");
+  // La funda no llegó ni a guardarse como candidata.
+  assert.equal(d.candidatos.find((c) => c.url === "https://e/3"), undefined);
+});
+
+test("sin presupuesto no se busca: releer lo que sigo vale más", async () => {
+  const d = new DepositoMemoria();
+  d.usadasHoy = 2000;
+  d.productosBuscables = [
+    { productoId: "p1", usuarioId: "u1", nombre: "Sony WH-1000XM6", pesoKg: 1, objetivoPuesto: 360, conocidas: new Set<string>() },
+  ];
+  const r = await correr({ deposito: d, adaptadores: () => fijo(100), avisar: async () => ({}), presupuestoDiario: 2000 });
+  assert.equal(r.descubiertas, 0);
+  assert.equal(d.buscados.length, 0);
+});

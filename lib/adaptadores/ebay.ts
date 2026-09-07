@@ -1,5 +1,14 @@
 import { env } from "../entorno.ts";
-import { ahora, traer, type Adaptador, type Lectura, type PedidoLectura } from "./tipos.ts";
+import type { Condicion } from "../tipos.ts";
+import {
+  ahora,
+  traer,
+  type Adaptador,
+  type Consulta,
+  type Hallazgo,
+  type Lectura,
+  type PedidoLectura,
+} from "./tipos.ts";
 
 /**
  * eBay por la Browse API oficial.
@@ -108,6 +117,31 @@ export function leerItem(item: RespuestaItem): Omit<Lectura, "ts"> {
   };
 }
 
+/** Las condiciones de eBay, traducidas a las mías. */
+export function condicionDeEbay(c: string | undefined): Condicion | null {
+  if (!c) return null;
+  const t = c.toLowerCase();
+  if (t.includes("for parts") || t.includes("not working")) return null;
+  if (t.includes("open box") || t.includes("new other")) return "open_box";
+  if (t.includes("refurb")) return "reacondicionado";
+  if (t.startsWith("new")) return "nuevo";
+  return "usado";
+}
+
+type Resumen = {
+  itemId?: string;
+  title?: string;
+  itemWebUrl?: string;
+  price?: { value?: string; currency?: string };
+  currentBidPrice?: { value?: string; currency?: string };
+  shippingOptions?: { shippingCost?: { value?: string } }[];
+  condition?: string;
+  buyingOptions?: string[];
+  itemEndDate?: string;
+  image?: { imageUrl?: string };
+  seller?: { username?: string };
+};
+
 export const ebay: Adaptador = {
   slug: "ebay",
   nombre: "eBay",
@@ -135,5 +169,61 @@ export const ebay: Adaptador = {
     if (!res.ok) throw new Error(`ebay ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
     return { ...leerItem((await res.json()) as RespuestaItem), ts: ahora() };
+  },
+
+  /**
+   * Buscar en el catálogo. El recorte de precio va en el filtro del servidor
+   * y no en mi código: lo que no viaja no cuesta cupo ni hay que descartar
+   * después.
+   */
+  async buscar(consulta: Consulta): Promise<Hallazgo[]> {
+    const filtros: string[] = [];
+    const min = consulta.precioMin ?? null;
+    const max = consulta.precioMax ?? null;
+    if (min !== null || max !== null) {
+      filtros.push(`price:[${min !== null ? min.toFixed(0) : ""}..${max !== null ? max.toFixed(0) : ""}]`);
+      filtros.push("priceCurrency:USD");
+    }
+
+    const params = new URLSearchParams({
+      q: consulta.texto,
+      limit: String(Math.min(consulta.maximo ?? 25, 50)),
+    });
+    if (filtros.length) params.set("filter", filtros.join(","));
+
+    const res = await traer(`${BASE()}/buy/browse/v1/item_summary/search?${params}`, {
+      headers: {
+        authorization: `Bearer ${await tokenDeApp()}`,
+        "X-EBAY-C-MARKETPLACE-ID": MERCADO(),
+      },
+    });
+    if (!res.ok) throw new Error(`ebay búsqueda ${res.status}: ${(await res.text()).slice(0, 200)}`);
+
+    const json = (await res.json()) as { itemSummaries?: Resumen[] };
+    return (json.itemSummaries ?? []).flatMap((r) => {
+      const url = r.itemWebUrl ?? "";
+      const id = itemDeUrl(url);
+      // Sin id de item no hay nada que releer después: no sirve como listing.
+      if (!id) return [];
+      const opciones = r.buyingOptions ?? [];
+      const soloSubasta = opciones.includes("AUCTION") && !opciones.includes("FIXED_PRICE");
+      const fijo = aNumero(r.price?.value);
+      const puja = aNumero(r.currentBidPrice?.value);
+      return [
+        {
+          url,
+          sku: id,
+          titulo: r.title ?? "",
+          precio: soloSubasta ? (puja ?? fijo) : (fijo ?? puja),
+          envio: aNumero(r.shippingOptions?.[0]?.shippingCost?.value),
+          moneda: r.price?.currency ?? "USD",
+          condicion: condicionDeEbay(r.condition),
+          tipoVenta: soloSubasta ? ("subasta" as const) : opciones.includes("BEST_OFFER") ? ("mejor_oferta" as const) : ("fijo" as const),
+          terminaEn: r.itemEndDate ?? null,
+          imagen: r.image?.imageUrl ?? null,
+          vendedor: r.seller?.username ?? null,
+        },
+      ];
+    });
   },
 };

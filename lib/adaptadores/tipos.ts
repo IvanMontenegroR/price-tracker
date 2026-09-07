@@ -1,4 +1,4 @@
-import type { Origen, TipoVenta } from "../tipos.ts";
+import type { Condicion, Origen, TipoVenta } from "../tipos.ts";
 import { env } from "../entorno.ts";
 
 /**
@@ -28,6 +28,30 @@ export type PedidoLectura = {
   vendedor: string | null;
 };
 
+/** Lo que se le pide a una tienda cuando busco, no cuando releo. */
+export type Consulta = {
+  texto: string;
+  maximo?: number;
+  /** Recorte de precio en la tienda, para no traer basura ni gastar cupo. */
+  precioMin?: number | null;
+  precioMax?: number | null;
+};
+
+/** Una publicación encontrada, todavía sin adoptar. */
+export type Hallazgo = {
+  url: string;
+  sku: string | null;
+  titulo: string;
+  precio: number | null;
+  envio: number | null;
+  moneda: string;
+  condicion: Condicion | null;
+  tipoVenta: TipoVenta;
+  terminaEn: string | null;
+  imagen: string | null;
+  vendedor: string | null;
+};
+
 export interface Adaptador {
   slug: string;
   nombre: string;
@@ -35,6 +59,12 @@ export interface Adaptador {
   /** false = está detrás de la interfaz pero sin implementar. */
   disponible: boolean;
   leer(pedido: PedidoLectura): Promise<Lectura>;
+  /**
+   * Buscar publicaciones de un producto. Opcional a propósito: las tiendas
+   * que solo tienen JSON-LD no se pueden buscar sin crawlear sus páginas de
+   * resultados, que es justo lo que no hago.
+   */
+  buscar?(consulta: Consulta): Promise<Hallazgo[]>;
 }
 
 export class NoImplementado extends Error {}

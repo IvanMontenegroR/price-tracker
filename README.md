@@ -58,6 +58,37 @@ parejos: en cada corrida mira qué está vencido según su cadencia y cuánto
 presupuesto queda. Un tick que llega tarde lee más cosas; uno que se pierde no
 rompe nada.
 
+### Yo elijo el producto, el sistema busca las publicaciones
+
+No pego URLs. Cargo un producto con su peso y su objetivo, y el recolector
+busca las publicaciones solo, una vez por día por producto, con lo que le
+sobra del presupuesto —releer lo que ya sigo vale más que encontrar algo
+nuevo, porque de lo que ya sigo salen las alertas—.
+
+Lo difícil no es buscar, es decidir si un resultado **es** el producto. Buscar
+"Sony WH-1000XM6" devuelve, en la misma página: los auriculares, la funda de
+los auriculares, un cable, un WF-1000XM6 que es otro producto y una caja
+vacía. Adoptar cualquiera de esos arruina el tracker: el anti-ruido no salva
+de una funda de US$ 12 que parece una baja del 97%.
+
+Tres filtros, en `lib/descubrimiento/coincidencia.ts`:
+
+1. **Palabras que descalifican** — funda, cable, "for parts", caja vacía.
+2. **Los números tienen que coincidir** — 256GB no es 128GB, XM6 no es XM5. Y
+   se distingue que el título *omita* el prefijo del modelo ("Sony 1000XM6",
+   que puede ser el mío escrito rápido, va a revisión) de que diga *otro*
+   ("WF-1000XM6", que se descarta).
+3. **El precio tiene que ser plausible contra mi objetivo** — es el que más
+   trabaja. Yo ya declaré cuánto vale la cosa para mí al poner el objetivo; un
+   resultado a la vigésima parte de eso no es una ganga, es otra cosa.
+
+Y el reparto: lo obvio se adopta solo (hasta 3 por producto), lo dudoso espera
+en una cola que se resuelve con un toque, lo malo ni se muestra. Un rechazo es
+para siempre.
+
+Solo eBay sabe buscar. Las tiendas con JSON-LD no: sus páginas de resultados
+no se pueden leer sin crawlear, que es justo lo que no hago.
+
 ### Las tres cosas separadas
 
 - **producto** — "iPhone 17 Pro 256GB". Lleva el **peso en kg**: es lo único

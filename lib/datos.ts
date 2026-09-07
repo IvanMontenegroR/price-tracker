@@ -190,6 +190,77 @@ export async function guardarParametros(p: Parametros & { nota?: string }): Prom
   if (error) throw new Error(error.message);
 }
 
+export type CandidatoPendiente = {
+  id: string;
+  producto_id: string;
+  tienda_id: string;
+  url: string;
+  sku: string | null;
+  titulo: string;
+  precio: number | null;
+  envio_us: number | null;
+  condicion: string | null;
+  tipo_venta: string;
+  termina_en: string | null;
+  imagen_url: string | null;
+  vendedor: string | null;
+  puesto_estimado: number | null;
+  puntaje: number;
+  motivos: string[];
+  producto: { nombre: string; objetivo_puesto: number | null } | null;
+};
+
+/** Lo que el descubrimiento encontró pero no se animó a adoptar solo. */
+export async function cargarCandidatos(): Promise<CandidatoPendiente[]> {
+  const sb = clienteNavegador();
+  const { data, error } = await sb
+    .from("candidato")
+    .select("*, producto:producto(nombre)")
+    .eq("estado", "pendiente")
+    .order("puntaje", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((c: Record<string, unknown>) => ({
+    ...c,
+    precio: numero(c.precio),
+    envio_us: numero(c.envio_us),
+    puesto_estimado: numero(c.puesto_estimado),
+    puntaje: Number(c.puntaje),
+    motivos: Array.isArray(c.motivos) ? (c.motivos as string[]) : [],
+  })) as CandidatoPendiente[];
+}
+
+/** Aceptar crea el listing: a partir de acá se lee en cada corrida. */
+export async function aceptarCandidato(c: CandidatoPendiente): Promise<void> {
+  const sb = clienteNavegador();
+  const uid = await usuarioId();
+  const { error } = await sb.from("listing").insert({
+    usuario_id: uid,
+    producto_id: c.producto_id,
+    tienda_id: c.tienda_id,
+    url: c.url,
+    sku: c.sku,
+    vendedor: c.vendedor,
+    condicion: c.condicion ?? "nuevo",
+    imagen_url: c.imagen_url,
+  });
+  if (error && !error.message.includes("duplicate")) throw new Error(error.message);
+  await marcar(c.id, "aceptado");
+}
+
+/** Rechazar es para siempre: no se vuelve a proponer. */
+export async function rechazarCandidato(id: string): Promise<void> {
+  await marcar(id, "rechazado");
+}
+
+async function marcar(id: string, estado: "aceptado" | "rechazado") {
+  const sb = clienteNavegador();
+  const { error } = await sb
+    .from("candidato")
+    .update({ estado, resuelto_en: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function guardarSuscripcionPush(sub: PushSubscriptionJSON): Promise<void> {
   const sb = clienteNavegador();
   const uid = await usuarioId();
